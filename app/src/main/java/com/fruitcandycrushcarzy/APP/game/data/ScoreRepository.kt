@@ -13,12 +13,16 @@ import kotlinx.coroutines.flow.map
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "game_scores")
 
 class ScoreRepository(private val context: Context) {
+
     private val HIGH_SCORE_KEY = intPreferencesKey("high_score")
     private val SOUND_KEY = booleanPreferencesKey("sound_enabled")
     private val MUSIC_KEY = booleanPreferencesKey("music_enabled")
     private val VIBRATION_KEY = booleanPreferencesKey("vibration_enabled")
     private val HAS_RATED_KEY = booleanPreferencesKey("has_rated")
     private val GAMES_PLAYED_KEY = intPreferencesKey("games_played")
+
+    // Earning system
+    private val WALLET_BALANCE_KEY = intPreferencesKey("wallet_balance")
 
     val highScoreFlow: Flow<Int> = context.dataStore.data
         .map { preferences -> preferences[HIGH_SCORE_KEY] ?: 0 }
@@ -38,6 +42,10 @@ class ScoreRepository(private val context: Context) {
     val gamesPlayedFlow: Flow<Int> = context.dataStore.data
         .map { preferences -> preferences[GAMES_PLAYED_KEY] ?: 0 }
 
+    // Current wallet balance
+    val walletBalanceFlow: Flow<Int> = context.dataStore.data
+        .map { preferences -> preferences[WALLET_BALANCE_KEY] ?: 0 }
+
     suspend fun updateHighScore(score: Int) {
         context.dataStore.edit { preferences ->
             val currentHighScore = preferences[HIGH_SCORE_KEY] ?: 0
@@ -51,6 +59,14 @@ class ScoreRepository(private val context: Context) {
         context.dataStore.edit { preferences ->
             val current = preferences[GAMES_PLAYED_KEY] ?: 0
             preferences[GAMES_PLAYED_KEY] = current + 1
+        }
+    }
+
+    // Add level earning to wallet
+    suspend fun addEarning(amount: Int) {
+        context.dataStore.edit { preferences ->
+            val currentBalance = preferences[WALLET_BALANCE_KEY] ?: 0
+            preferences[WALLET_BALANCE_KEY] = currentBalance + amount
         }
     }
 
