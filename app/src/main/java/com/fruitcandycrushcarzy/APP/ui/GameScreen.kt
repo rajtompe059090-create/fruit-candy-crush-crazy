@@ -17,7 +17,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -32,7 +31,6 @@ import com.fruitcandycrushcarzy.APP.game.model.Fruit
 import com.fruitcandycrushcarzy.APP.game.model.FruitType
 import com.fruitcandycrushcarzy.APP.game.model.Position
 import com.fruitcandycrushcarzy.APP.game.viewmodel.DragDirection
-import com.fruitcandycrushcarzy.APP.game.viewmodel.GameEvent
 import com.fruitcandycrushcarzy.APP.game.viewmodel.GameViewModel
 import kotlin.math.abs
 
@@ -64,9 +62,7 @@ fun GameScreen(
                     modifier = Modifier.padding(top = 12.dp)
                 )
 
-                Spacer(
-                    modifier = Modifier.height(12.dp)
-                )
+                Spacer(modifier = Modifier.height(12.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -94,9 +90,7 @@ fun GameScreen(
                     )
                 }
 
-                Spacer(
-                    modifier = Modifier.height(12.dp)
-                )
+                Spacer(modifier = Modifier.height(12.dp))
 
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -113,9 +107,7 @@ fun GameScreen(
                             fontSize = 18.sp
                         )
 
-                        Spacer(
-                            modifier = Modifier.height(8.dp)
-                        )
+                        Spacer(modifier = Modifier.height(8.dp))
 
                         GameBoard(
                             grid = state.grid,
@@ -123,9 +115,11 @@ fun GameScreen(
                             enabled =
                                 !state.isProcessing &&
                                 !state.isStarting &&
-                                !state.isLevelUp,
-                            onCellClick = {
-                                viewModel.onCellClick(it)
+                                !state.isLevelUp &&
+                                state.movesLeft > 0 &&
+                                state.timeLeftSeconds > 0,
+                            onCellClick = { position ->
+                                viewModel.onCellClick(position)
                             },
                             onSwipe = { position, direction ->
                                 viewModel.onSwipe(
@@ -137,9 +131,7 @@ fun GameScreen(
                     }
                 }
 
-                Spacer(
-                    modifier = Modifier.height(16.dp)
-                )
+                Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
                     text = "💰 Wallet: ₹${state.walletBalance}",
@@ -147,9 +139,7 @@ fun GameScreen(
                     fontSize = 22.sp
                 )
 
-                Spacer(
-                    modifier = Modifier.height(10.dp)
-                )
+                Spacer(modifier = Modifier.height(10.dp))
 
                 Text(
                     text = "🏆 High Score: ${state.highScore}",
@@ -157,9 +147,7 @@ fun GameScreen(
                     fontSize = 18.sp
                 )
 
-                Spacer(
-                    modifier = Modifier.height(16.dp)
-                )
+                Spacer(modifier = Modifier.height(16.dp))
 
                 Row(
                     horizontalArrangement = Arrangement.Center
@@ -176,9 +164,7 @@ fun GameScreen(
                         Text("🔀 Shuffle")
                     }
 
-                    Spacer(
-                        modifier = Modifier.width(8.dp)
-                    )
+                    Spacer(modifier = Modifier.width(8.dp))
 
                     Button(
                         onClick = {
@@ -192,9 +178,7 @@ fun GameScreen(
                     }
                 }
 
-                Spacer(
-                    modifier = Modifier.height(10.dp)
-                )
+                Spacer(modifier = Modifier.height(10.dp))
 
                 Button(
                     onClick = {
@@ -204,9 +188,7 @@ fun GameScreen(
                     Text("🔄 New Game")
                 }
 
-                Spacer(
-                    modifier = Modifier.height(18.dp)
-                )
+                Spacer(modifier = Modifier.height(18.dp))
 
                 Text(
                     text = "Earnings per level",
@@ -214,19 +196,20 @@ fun GameScreen(
                     fontSize = 18.sp
                 )
 
+                Spacer(modifier = Modifier.height(5.dp))
+
                 Text(
-                    text = "Level 1-50  → ₹2\n" +
-                            "Level 51-100 → ₹3\n" +
-                            "Level 101-150 → ₹5\n" +
-                            "Level 151-200 → ₹10\n" +
-                            "Level 201+ → ₹15",
+                    text =
+                        "Level 1-50 → ₹2\n" +
+                        "Level 51-100 → ₹3\n" +
+                        "Level 101-150 → ₹5\n" +
+                        "Level 151-200 → ₹10\n" +
+                        "Level 201+ → ₹15",
                     color = Color.LightGray,
                     fontSize = 15.sp
                 )
 
-                Spacer(
-                    modifier = Modifier.height(20.dp)
-                )
+                Spacer(modifier = Modifier.height(20.dp))
 
                 Text(
                     text = "Recent Transactions",
@@ -234,40 +217,48 @@ fun GameScreen(
                     fontSize = 20.sp
                 )
 
-                Spacer(
-                    modifier = Modifier.height(8.dp)
-                )
+                Spacer(modifier = Modifier.height(8.dp))
 
-                state.transactions.take(10).forEach { transaction ->
+                /*
+                 * Transaction list
+                 *
+                 * GameState me transactions available hain.
+                 * Explicit type dene ki zarurat nahi hai.
+                 */
+                state.transactions
+                    .take(10)
+                    .forEach { transaction ->
 
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 3.dp)
-                    ) {
-
-                        Row(
+                        Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(10.dp),
-                            horizontalArrangement =
-                                Arrangement.SpaceBetween
+                                .padding(vertical = 3.dp)
                         ) {
 
-                            Text(
-                                text = transaction.description
-                            )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(10.dp),
+                                horizontalArrangement =
+                                    Arrangement.SpaceBetween,
+                                verticalAlignment =
+                                    Alignment.CenterVertically
+                            ) {
 
-                            Text(
-                                text = "+₹${transaction.amount}"
-                            )
+                                Text(
+                                    text =
+                                        transaction.description
+                                )
+
+                                Text(
+                                    text =
+                                        "+₹${transaction.amount}"
+                                )
+                            }
                         }
                     }
-                }
 
-                Spacer(
-                    modifier = Modifier.height(20.dp)
-                )
+                Spacer(modifier = Modifier.height(20.dp))
             }
         }
 
@@ -298,7 +289,8 @@ fun GameScreen(
             ) {
 
                 Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    horizontalAlignment =
+                        Alignment.CenterHorizontally
                 ) {
 
                     Text(
@@ -312,7 +304,8 @@ fun GameScreen(
                     )
 
                     Text(
-                        text = "Next Level: ${state.level + 1}",
+                        text =
+                            "Next Level: ${state.level + 1}",
                         color = Color(0xFFFFD54F),
                         fontSize = 22.sp
                     )
@@ -340,8 +333,10 @@ private fun InfoBox(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(6.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            horizontalAlignment =
+                Alignment.CenterHorizontally,
+            verticalArrangement =
+                Arrangement.Center
         ) {
 
             Text(
@@ -414,29 +409,33 @@ private fun FruitCell(
     onSwipe: (DragDirection) -> Unit
 ) {
 
-    val fruitText =
-        when (fruit?.type) {
+    val fruitText = when (fruit?.type) {
 
-            FruitType.APPLE -> "🍎"
-            FruitType.BANANA -> "🍌"
-            FruitType.GRAPE -> "🍇"
-            FruitType.ORANGE -> "🍊"
-            FruitType.STRAWBERRY -> "🍓"
-            FruitType.WATERMELON -> "🍉"
+        FruitType.APPLE -> "🍎"
 
-            null -> " "
-            else -> "🍬"
-        }
+        FruitType.BANANA -> "🍌"
+
+        FruitType.GRAPE -> "🍇"
+
+        FruitType.ORANGE -> "🍊"
+
+        FruitType.STRAWBERRY -> "🍓"
+
+        null -> " "
+
+        else -> "🍬"
+    }
 
     Box(
         modifier = Modifier
             .size(48.dp)
             .padding(2.dp)
             .background(
-                if (selected)
+                if (selected) {
                     Color(0xFFFFD54F)
-                else
-                    Color(0xFF37474F),
+                } else {
+                    Color(0xFF37474F)
+                },
                 RoundedCornerShape(8.dp)
             )
             .pointerInput(enabled) {
@@ -444,10 +443,56 @@ private fun FruitCell(
                 if (enabled) {
 
                     detectDragGestures(
-                        onDragEnd = {},
-                        onDragCancel = {},
-                        onDrag = { _, _ -> },
-                        onDragStart = { _ -> }
+
+                        onDragStart = { },
+
+                        onDragEnd = { },
+
+                        onDragCancel = { },
+
+                        onDrag = { change, dragAmount ->
+
+                            change.consume()
+
+                            val dx = dragAmount.x
+                            val dy = dragAmount.y
+
+                            if (
+                                abs(dx) > abs(dy) &&
+                                abs(dx) > 10
+                            ) {
+
+                                if (dx > 0) {
+
+                                    onSwipe(
+                                        DragDirection.RIGHT
+                                    )
+
+                                } else {
+
+                                    onSwipe(
+                                        DragDirection.LEFT
+                                    )
+                                }
+
+                            } else if (
+                                abs(dy) > 10
+                            ) {
+
+                                if (dy > 0) {
+
+                                    onSwipe(
+                                        DragDirection.DOWN
+                                    )
+
+                                } else {
+
+                                    onSwipe(
+                                        DragDirection.UP
+                                    )
+                                }
+                            }
+                        }
                     )
                 }
             },
