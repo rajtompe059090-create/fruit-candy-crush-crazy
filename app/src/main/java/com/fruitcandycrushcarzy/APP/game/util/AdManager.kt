@@ -11,19 +11,17 @@ import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 import com.google.android.gms.ads.rewarded.RewardedAd
 import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
 
-class AdManager(
-    private val context: Context
-) {
+class AdManager(private val context: Context) {
 
     companion object {
 
-        // Google official TEST ad unit IDs.
-        // Testing ke liye inhi ko use karo.
-        private const val TEST_INTERSTITIAL_ID =
-            "ca-app-pub-3940256099942544/1033173712"
+        // YOUR REAL ADMOB INTERSTITIAL AD UNIT ID
+        private const val INTERSTITIAL_AD_UNIT_ID =
+            "ca-app-pub-2230624605934075/4037109000"
 
-        private const val TEST_REWARDED_ID =
-            "ca-app-pub-3940256099942544/5224354917"
+        // YOUR REAL ADMOB REWARDED AD UNIT ID
+        private const val REWARDED_AD_UNIT_ID =
+            "ca-app-pub-2230624605934075/7372934967"
     }
 
     private var interstitialAd: InterstitialAd? = null
@@ -34,9 +32,7 @@ class AdManager(
         loadRewarded()
     }
 
-    /*
-     * INTERSTITIAL
-     */
+    // ---------------- INTERSTITIAL ----------------
 
     private fun loadInterstitial() {
 
@@ -44,7 +40,7 @@ class AdManager(
 
         InterstitialAd.load(
             context,
-            TEST_INTERSTITIAL_ID,
+            INTERSTITIAL_AD_UNIT_ID,
             request,
             object : InterstitialAdLoadCallback() {
 
@@ -70,7 +66,7 @@ class AdManager(
                 }
 
                 override fun onAdFailedToLoad(
-                    loadAdError: LoadAdError
+                    error: LoadAdError
                 ) {
                     interstitialAd = null
                 }
@@ -86,7 +82,6 @@ class AdManager(
         val ad = interstitialAd
 
         if (ad == null) {
-
             loadInterstitial()
             onFinished()
             return
@@ -96,7 +91,6 @@ class AdManager(
             object : FullScreenContentCallback() {
 
                 override fun onAdDismissedFullScreenContent() {
-
                     interstitialAd = null
                     loadInterstitial()
                     onFinished()
@@ -105,7 +99,6 @@ class AdManager(
                 override fun onAdFailedToShowFullScreenContent(
                     adError: AdError
                 ) {
-
                     interstitialAd = null
                     loadInterstitial()
                     onFinished()
@@ -113,12 +106,9 @@ class AdManager(
             }
 
         ad.show(activity)
-        interstitialAd = null
     }
 
-    /*
-     * REWARDED
-     */
+    // ---------------- REWARDED ----------------
 
     private fun loadRewarded() {
 
@@ -126,39 +116,23 @@ class AdManager(
 
         RewardedAd.load(
             context,
-            TEST_REWARDED_ID,
+            REWARDED_AD_UNIT_ID,
             request,
             object : RewardedAdLoadCallback() {
 
                 override fun onAdLoaded(ad: RewardedAd) {
 
                     rewardedAd = ad
-
-                    ad.fullScreenContentCallback =
-                        object : FullScreenContentCallback() {
-
-                            override fun onAdDismissedFullScreenContent() {
-                                rewardedAd = null
-                                loadRewarded()
-                            }
-
-                            override fun onAdFailedToShowFullScreenContent(
-                                adError: AdError
-                            ) {
-                                rewardedAd = null
-                                loadRewarded()
-                            }
-                        }
                 }
 
                 override fun onAdFailedToLoad(
-                    loadAdError: LoadAdError
+                    error: LoadAdError
                 ) {
                     rewardedAd = null
+                }
             }
-        }
-    )
-}
+        )
+    }
 
     fun showRewarded(
         activity: Activity,
@@ -168,18 +142,14 @@ class AdManager(
         val ad = rewardedAd
 
         if (ad == null) {
-
             loadRewarded()
             return
         }
-
-        var rewardGiven = false
 
         ad.fullScreenContentCallback =
             object : FullScreenContentCallback() {
 
                 override fun onAdDismissedFullScreenContent() {
-
                     rewardedAd = null
                     loadRewarded()
                 }
@@ -187,21 +157,13 @@ class AdManager(
                 override fun onAdFailedToShowFullScreenContent(
                     adError: AdError
                 ) {
-
                     rewardedAd = null
                     loadRewarded()
                 }
             }
 
         ad.show(activity) {
-
-            if (!rewardGiven) {
-
-                rewardGiven = true
-                onReward()
-            }
+            onReward()
         }
-
-        rewardedAd = null
     }
 }
