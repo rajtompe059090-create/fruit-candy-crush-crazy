@@ -12,90 +12,144 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import org.json.JSONArray
 import org.json.JSONObject
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
-val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "game_scores")
-
-data class Transaction(
-    val title: String,
-    val amount: Int,
-    val type: String,
-    val date: String
+val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
+    name = "game_scores"
 )
 
-class ScoreRepository(private val context: Context) {
+class ScoreRepository(
+    private val context: Context
+) {
 
-    private val HIGH_SCORE_KEY = intPreferencesKey("high_score")
-    private val SOUND_KEY = booleanPreferencesKey("sound_enabled")
-    private val MUSIC_KEY = booleanPreferencesKey("music_enabled")
-    private val VIBRATION_KEY = booleanPreferencesKey("vibration_enabled")
-    private val HAS_RATED_KEY = booleanPreferencesKey("has_rated")
-    private val GAMES_PLAYED_KEY = intPreferencesKey("games_played")
+    private val HIGH_SCORE_KEY =
+        intPreferencesKey("high_score")
 
-    private val WALLET_BALANCE_KEY = intPreferencesKey("wallet_balance")
+    private val SOUND_KEY =
+        booleanPreferencesKey("sound_enabled")
 
+    private val MUSIC_KEY =
+        booleanPreferencesKey("music_enabled")
+
+    private val VIBRATION_KEY =
+        booleanPreferencesKey("vibration_enabled")
+
+    private val HAS_RATED_KEY =
+        booleanPreferencesKey("has_rated")
+
+    private val GAMES_PLAYED_KEY =
+        intPreferencesKey("games_played")
+
+    // Wallet
+    private val WALLET_BALANCE_KEY =
+        intPreferencesKey("wallet_balance")
+
+    // Transaction history
     private val TRANSACTIONS_KEY =
-        stringPreferencesKey("wallet_transactions")
+        stringPreferencesKey("transactions")
 
-    val highScoreFlow: Flow<Int> = context.dataStore.data
-        .map { it[HIGH_SCORE_KEY] ?: 0 }
+    // ------------------------------------------------
+    // HIGH SCORE
+    // ------------------------------------------------
 
-    val soundEnabledFlow: Flow<Boolean> = context.dataStore.data
-        .map { it[SOUND_KEY] ?: true }
+    val highScoreFlow: Flow<Int> =
+        context.dataStore.data.map { preferences ->
+            preferences[HIGH_SCORE_KEY] ?: 0
+        }
 
-    val musicEnabledFlow: Flow<Boolean> = context.dataStore.data
-        .map { it[MUSIC_KEY] ?: true }
+    // ------------------------------------------------
+    // SOUND
+    // ------------------------------------------------
 
-    val vibrationEnabledFlow: Flow<Boolean> = context.dataStore.data
-        .map { it[VIBRATION_KEY] ?: true }
+    val soundEnabledFlow: Flow<Boolean> =
+        context.dataStore.data.map { preferences ->
+            preferences[SOUND_KEY] ?: true
+        }
 
-    val hasRatedFlow: Flow<Boolean> = context.dataStore.data
-        .map { it[HAS_RATED_KEY] ?: false }
+    // ------------------------------------------------
+    // MUSIC
+    // ------------------------------------------------
 
-    val gamesPlayedFlow: Flow<Int> = context.dataStore.data
-        .map { it[GAMES_PLAYED_KEY] ?: 0 }
+    val musicEnabledFlow: Flow<Boolean> =
+        context.dataStore.data.map { preferences ->
+            preferences[MUSIC_KEY] ?: true
+        }
 
-    val walletBalanceFlow: Flow<Int> = context.dataStore.data
-        .map { it[WALLET_BALANCE_KEY] ?: 0 }
+    // ------------------------------------------------
+    // VIBRATION
+    // ------------------------------------------------
+
+    val vibrationEnabledFlow: Flow<Boolean> =
+        context.dataStore.data.map { preferences ->
+            preferences[VIBRATION_KEY] ?: true
+        }
+
+    // ------------------------------------------------
+    // RATING
+    // ------------------------------------------------
+
+    val hasRatedFlow: Flow<Boolean> =
+        context.dataStore.data.map { preferences ->
+            preferences[HAS_RATED_KEY] ?: false
+        }
+
+    // ------------------------------------------------
+    // GAMES PLAYED
+    // ------------------------------------------------
+
+    val gamesPlayedFlow: Flow<Int> =
+        context.dataStore.data.map { preferences ->
+            preferences[GAMES_PLAYED_KEY] ?: 0
+        }
+
+    // ------------------------------------------------
+    // WALLET BALANCE
+    // ------------------------------------------------
+
+    val walletBalanceFlow: Flow<Int> =
+        context.dataStore.data.map { preferences ->
+            preferences[WALLET_BALANCE_KEY] ?: 0
+        }
+
+    // ------------------------------------------------
+    // TRANSACTION HISTORY
+    // ------------------------------------------------
 
     val transactionsFlow: Flow<List<Transaction>> =
         context.dataStore.data.map { preferences ->
 
-            val json = preferences[TRANSACTIONS_KEY] ?: "[]"
+            val jsonString =
+                preferences[TRANSACTIONS_KEY] ?: "[]"
 
-            try {
-                val array = JSONArray(json)
-
-                List(array.length()) { index ->
-                    val obj = array.getJSONObject(index)
-
-                    Transaction(
-                        title = obj.optString("title"),
-                        amount = obj.optInt("amount"),
-                        type = obj.optString("type"),
-                        date = obj.optString("date")
-                    )
-                }
-            } catch (e: Exception) {
-                emptyList()
-            }
+            parseTransactions(jsonString)
         }
 
+    // ------------------------------------------------
+    // UPDATE HIGH SCORE
+    // ------------------------------------------------
+
     suspend fun updateHighScore(score: Int) {
+
         context.dataStore.edit { preferences ->
+
             val currentHighScore =
                 preferences[HIGH_SCORE_KEY] ?: 0
 
             if (score > currentHighScore) {
-                preferences[HIGH_SCORE_KEY] = score
+
+                preferences[HIGH_SCORE_KEY] =
+                    score
             }
         }
     }
 
+    // ------------------------------------------------
+    // GAMES PLAYED
+    // ------------------------------------------------
+
     suspend fun incrementGamesPlayed() {
+
         context.dataStore.edit { preferences ->
+
             val current =
                 preferences[GAMES_PLAYED_KEY] ?: 0
 
@@ -104,75 +158,235 @@ class ScoreRepository(private val context: Context) {
         }
     }
 
-    suspend fun addEarning(amount: Int) {
+    // ------------------------------------------------
+    // ADD EARNING + TRANSACTION
+    // ------------------------------------------------
+
+    suspend fun addEarning(
+        amount: Int
+    ) {
 
         context.dataStore.edit { preferences ->
 
+            // Current wallet balance
             val currentBalance =
                 preferences[WALLET_BALANCE_KEY] ?: 0
 
-            preferences[WALLET_BALANCE_KEY] =
+            // New balance
+            val newBalance =
                 currentBalance + amount
 
-            val currentJson =
+            preferences[WALLET_BALANCE_KEY] =
+                newBalance
+
+            // Existing transactions
+            val existingJson =
                 preferences[TRANSACTIONS_KEY] ?: "[]"
 
-            val array = JSONArray(currentJson)
+            val transactions =
+                parseTransactions(existingJson)
+                    .toMutableList()
 
+            // New transaction
             val transaction =
-                JSONObject().apply {
-                    put(
-                        "title",
-                        "Level Completed"
-                    )
+                Transaction(
+                    id = System.currentTimeMillis(),
+                    type = "EARNING",
+                    amount = amount,
+                    description = "Level completed",
+                    timestamp = System.currentTimeMillis()
+                )
 
-                    put(
-                        "amount",
-                        amount
-                    )
+            // Add newest transaction first
+            transactions.add(
+                0,
+                transaction
+            )
 
-                    put(
-                        "type",
-                        "CREDIT"
-                    )
+            // Keep last 100 transactions
+            val limitedTransactions =
+                transactions.take(100)
 
-                    put(
-                        "date",
-                        SimpleDateFormat(
-                            "dd MMM yyyy, hh:mm a",
-                            Locale.getDefault()
-                        ).format(Date())
-                    )
-                }
-
-            array.put(transaction)
-
+            // Convert to JSON
             preferences[TRANSACTIONS_KEY] =
-                array.toString()
+                transactionsToJson(
+                    limitedTransactions
+                )
         }
     }
 
-    suspend fun setHasRated(rated: Boolean) {
-        context.dataStore.edit {
-            it[HAS_RATED_KEY] = rated
+    // ------------------------------------------------
+    // SET RATING
+    // ------------------------------------------------
+
+    suspend fun setHasRated(
+        rated: Boolean
+    ) {
+
+        context.dataStore.edit { preferences ->
+
+            preferences[HAS_RATED_KEY] =
+                rated
         }
     }
 
-    suspend fun toggleSound(enabled: Boolean) {
-        context.dataStore.edit {
-            it[SOUND_KEY] = enabled
+    // ------------------------------------------------
+    // SOUND
+    // ------------------------------------------------
+
+    suspend fun toggleSound(
+        enabled: Boolean
+    ) {
+
+        context.dataStore.edit { preferences ->
+
+            preferences[SOUND_KEY] =
+                enabled
         }
     }
 
-    suspend fun toggleMusic(enabled: Boolean) {
-        context.dataStore.edit {
-            it[MUSIC_KEY] = enabled
+    // ------------------------------------------------
+    // MUSIC
+    // ------------------------------------------------
+
+    suspend fun toggleMusic(
+        enabled: Boolean
+    ) {
+
+        context.dataStore.edit { preferences ->
+
+            preferences[MUSIC_KEY] =
+                enabled
         }
     }
 
-    suspend fun toggleVibration(enabled: Boolean) {
-        context.dataStore.edit {
-            it[VIBRATION_KEY] = enabled
+    // ------------------------------------------------
+    // VIBRATION
+    // ------------------------------------------------
+
+    suspend fun toggleVibration(
+        enabled: Boolean
+    ) {
+
+        context.dataStore.edit { preferences ->
+
+            preferences[VIBRATION_KEY] =
+                enabled
         }
+    }
+
+    // ------------------------------------------------
+    // JSON -> TRANSACTION LIST
+    // ------------------------------------------------
+
+    private fun parseTransactions(
+        jsonString: String
+    ): List<Transaction> {
+
+        val result =
+            mutableListOf<Transaction>()
+
+        try {
+
+            val jsonArray =
+                JSONArray(jsonString)
+
+            for (i in 0 until jsonArray.length()) {
+
+                val obj =
+                    jsonArray.getJSONObject(i)
+
+                result.add(
+
+                    Transaction(
+
+                        id =
+                            obj.optLong(
+                                "id"
+                            ),
+
+                        type =
+                            obj.optString(
+                                "type",
+                                "EARNING"
+                            ),
+
+                        amount =
+                            obj.optInt(
+                                "amount",
+                                0
+                            ),
+
+                        description =
+                            obj.optString(
+                                "description",
+                                "Earning"
+                            ),
+
+                        timestamp =
+                            obj.optLong(
+                                "timestamp"
+                            )
+                    )
+                )
+            }
+
+        } catch (
+            e: Exception
+        ) {
+
+            e.printStackTrace()
+        }
+
+        return result
+    }
+
+    // ------------------------------------------------
+    // TRANSACTION LIST -> JSON
+    // ------------------------------------------------
+
+    private fun transactionsToJson(
+        transactions: List<Transaction>
+    ): String {
+
+        val jsonArray =
+            JSONArray()
+
+        transactions.forEach { transaction ->
+
+            val obj =
+                JSONObject()
+
+            obj.put(
+                "id",
+                transaction.id
+            )
+
+            obj.put(
+                "type",
+                transaction.type
+            )
+
+            obj.put(
+                "amount",
+                transaction.amount
+            )
+
+            obj.put(
+                "description",
+                transaction.description
+            )
+
+            obj.put(
+                "timestamp",
+                transaction.timestamp
+            )
+
+            jsonArray.put(
+                obj
+            )
+        }
+
+        return jsonArray.toString()
     }
 }
