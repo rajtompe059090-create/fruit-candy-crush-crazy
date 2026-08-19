@@ -17,6 +17,19 @@ val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
     name = "game_scores"
 )
 
+/*
+ * TRANSACTION MODEL
+ *
+ * Wallet ki earning history ke liye.
+ */
+data class Transaction(
+    val id: Long,
+    val type: String,
+    val amount: Int,
+    val description: String,
+    val timestamp: Long
+)
+
 class ScoreRepository(
     private val context: Context
 ) {
@@ -39,13 +52,12 @@ class ScoreRepository(
     private val GAMES_PLAYED_KEY =
         intPreferencesKey("games_played")
 
-    // Wallet
     private val WALLET_BALANCE_KEY =
         intPreferencesKey("wallet_balance")
 
-    // Transaction history
     private val TRANSACTIONS_KEY =
         stringPreferencesKey("transactions")
+
 
     // ------------------------------------------------
     // HIGH SCORE
@@ -56,6 +68,7 @@ class ScoreRepository(
             preferences[HIGH_SCORE_KEY] ?: 0
         }
 
+
     // ------------------------------------------------
     // SOUND
     // ------------------------------------------------
@@ -64,6 +77,7 @@ class ScoreRepository(
         context.dataStore.data.map { preferences ->
             preferences[SOUND_KEY] ?: true
         }
+
 
     // ------------------------------------------------
     // MUSIC
@@ -74,6 +88,7 @@ class ScoreRepository(
             preferences[MUSIC_KEY] ?: true
         }
 
+
     // ------------------------------------------------
     // VIBRATION
     // ------------------------------------------------
@@ -82,6 +97,7 @@ class ScoreRepository(
         context.dataStore.data.map { preferences ->
             preferences[VIBRATION_KEY] ?: true
         }
+
 
     // ------------------------------------------------
     // RATING
@@ -92,6 +108,7 @@ class ScoreRepository(
             preferences[HAS_RATED_KEY] ?: false
         }
 
+
     // ------------------------------------------------
     // GAMES PLAYED
     // ------------------------------------------------
@@ -101,6 +118,7 @@ class ScoreRepository(
             preferences[GAMES_PLAYED_KEY] ?: 0
         }
 
+
     // ------------------------------------------------
     // WALLET BALANCE
     // ------------------------------------------------
@@ -109,6 +127,7 @@ class ScoreRepository(
         context.dataStore.data.map { preferences ->
             preferences[WALLET_BALANCE_KEY] ?: 0
         }
+
 
     // ------------------------------------------------
     // TRANSACTION HISTORY
@@ -123,11 +142,14 @@ class ScoreRepository(
             parseTransactions(jsonString)
         }
 
+
     // ------------------------------------------------
     // UPDATE HIGH SCORE
     // ------------------------------------------------
 
-    suspend fun updateHighScore(score: Int) {
+    suspend fun updateHighScore(
+        score: Int
+    ) {
 
         context.dataStore.edit { preferences ->
 
@@ -141,6 +163,7 @@ class ScoreRepository(
             }
         }
     }
+
 
     // ------------------------------------------------
     // GAMES PLAYED
@@ -158,6 +181,7 @@ class ScoreRepository(
         }
     }
 
+
     // ------------------------------------------------
     // ADD EARNING + TRANSACTION
     // ------------------------------------------------
@@ -168,52 +192,56 @@ class ScoreRepository(
 
         context.dataStore.edit { preferences ->
 
-            // Current wallet balance
             val currentBalance =
                 preferences[WALLET_BALANCE_KEY] ?: 0
 
-            // New balance
             val newBalance =
                 currentBalance + amount
 
             preferences[WALLET_BALANCE_KEY] =
                 newBalance
 
-            // Existing transactions
+
             val existingJson =
                 preferences[TRANSACTIONS_KEY] ?: "[]"
 
             val transactions =
-                parseTransactions(existingJson)
-                    .toMutableList()
+                parseTransactions(
+                    existingJson
+                ).toMutableList()
 
-            // New transaction
+
+            val currentTime =
+                System.currentTimeMillis()
+
+
             val transaction =
                 Transaction(
-                    id = System.currentTimeMillis(),
+                    id = currentTime,
                     type = "EARNING",
                     amount = amount,
                     description = "Level completed",
-                    timestamp = System.currentTimeMillis()
+                    timestamp = currentTime
                 )
 
-            // Add newest transaction first
+
             transactions.add(
                 0,
                 transaction
             )
 
-            // Keep last 100 transactions
+
             val limitedTransactions =
                 transactions.take(100)
 
-            // Convert to JSON
+
             preferences[TRANSACTIONS_KEY] =
                 transactionsToJson(
                     limitedTransactions
                 )
         }
     }
+
 
     // ------------------------------------------------
     // SET RATING
@@ -230,6 +258,7 @@ class ScoreRepository(
         }
     }
 
+
     // ------------------------------------------------
     // SOUND
     // ------------------------------------------------
@@ -244,6 +273,7 @@ class ScoreRepository(
                 enabled
         }
     }
+
 
     // ------------------------------------------------
     // MUSIC
@@ -260,6 +290,7 @@ class ScoreRepository(
         }
     }
 
+
     // ------------------------------------------------
     // VIBRATION
     // ------------------------------------------------
@@ -274,6 +305,7 @@ class ScoreRepository(
                 enabled
         }
     }
+
 
     // ------------------------------------------------
     // JSON -> TRANSACTION LIST
@@ -291,10 +323,13 @@ class ScoreRepository(
             val jsonArray =
                 JSONArray(jsonString)
 
-            for (i in 0 until jsonArray.length()) {
+            for (
+                i in 0 until jsonArray.length()
+            ) {
 
                 val obj =
                     jsonArray.getJSONObject(i)
+
 
                 result.add(
 
@@ -341,6 +376,7 @@ class ScoreRepository(
         return result
     }
 
+
     // ------------------------------------------------
     // TRANSACTION LIST -> JSON
     // ------------------------------------------------
@@ -352,10 +388,12 @@ class ScoreRepository(
         val jsonArray =
             JSONArray()
 
+
         transactions.forEach { transaction ->
 
             val obj =
                 JSONObject()
+
 
             obj.put(
                 "id",
@@ -382,10 +420,12 @@ class ScoreRepository(
                 transaction.timestamp
             )
 
+
             jsonArray.put(
                 obj
             )
         }
+
 
         return jsonArray.toString()
     }
