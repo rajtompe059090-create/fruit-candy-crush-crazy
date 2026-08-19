@@ -33,7 +33,6 @@ import com.fruitcandycrushcarzy.APP.game.model.FruitType
 import com.fruitcandycrushcarzy.APP.game.model.Position
 import com.fruitcandycrushcarzy.APP.game.viewmodel.DragDirection
 import com.fruitcandycrushcarzy.APP.game.viewmodel.GameViewModel
-import kotlin.math.abs
 
 @Composable
 fun GameScreen(
@@ -70,10 +69,25 @@ fun GameScreen(
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
 
-                    InfoBox("LEVEL", state.level.toString())
-                    InfoBox("SCORE", state.score.toString())
-                    InfoBox("MOVES", state.movesLeft.toString())
-                    InfoBox("TIME", state.timeLeftSeconds.toString())
+                    InfoBox(
+                        title = "LEVEL",
+                        value = state.level.toString()
+                    )
+
+                    InfoBox(
+                        title = "SCORE",
+                        value = state.score.toString()
+                    )
+
+                    InfoBox(
+                        title = "MOVES",
+                        value = state.movesLeft.toString()
+                    )
+
+                    InfoBox(
+                        title = "TIME",
+                        value = state.timeLeftSeconds.toString()
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -175,12 +189,12 @@ fun GameScreen(
                 Spacer(modifier = Modifier.height(18.dp))
 
                 Text(
-                    text = "Earnings per level",
+                    text = "💵 Earnings per level",
                     color = Color.White,
                     fontSize = 18.sp
                 )
 
-                Spacer(modifier = Modifier.height(5.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
                     text =
@@ -193,57 +207,15 @@ fun GameScreen(
                     fontSize = 15.sp
                 )
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(25.dp))
 
                 Text(
-                    text = "Recent Transactions",
-                    color = Color.White,
-                    fontSize = 20.sp
+                    text = "🎮 Match fruits to earn rewards!",
+                    color = Color(0xFFFFD54F),
+                    fontSize = 16.sp
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                if (state.transactions.isEmpty()) {
-
-                    Text(
-                        text = "No transactions yet",
-                        color = Color.LightGray,
-                        fontSize = 14.sp
-                    )
-
-                } else {
-
-                    state.transactions
-                        .take(10)
-                        .forEach { transaction ->
-
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 3.dp)
-                            ) {
-
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(10.dp),
-                                    horizontalArrangement =
-                                        Arrangement.SpaceBetween
-                                ) {
-
-                                    Text(
-                                        text = transaction.description
-                                    )
-
-                                    Text(
-                                        text = "+₹${transaction.amount}"
-                                    )
-                                }
-                            }
-                        }
-                }
-
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(30.dp))
             }
         }
 
@@ -404,9 +376,6 @@ private fun FruitCell(
         FruitType.STRAWBERRY ->
             Color(0xFFD81B60)
 
-        FruitType.WATERMELON ->
-            Color(0xFF43A047)
-
         null ->
             Color(0xFF455A64)
 
@@ -416,16 +385,19 @@ private fun FruitCell(
 
     val fruitSymbol = when (fruit?.type) {
 
-        FruitType.APPLE -> "A"
-        FruitType.BANANA -> "B"
-        FruitType.GRAPE -> "G"
-        FruitType.ORANGE -> "O"
-        FruitType.STRAWBERRY -> "S"
-        FruitType.WATERMELON -> "W"
+        FruitType.APPLE -> "🍎"
+
+        FruitType.BANANA -> "🍌"
+
+        FruitType.GRAPE -> "🍇"
+
+        FruitType.ORANGE -> "🍊"
+
+        FruitType.STRAWBERRY -> "🍓"
 
         null -> ""
 
-        else -> "C"
+        else -> "🍬"
     }
 
     Box(
@@ -445,21 +417,13 @@ private fun FruitCell(
                 if (enabled) {
 
                     detectDragGestures(
-                        onDragStart = {
-                            // Start of swipe
-                        },
+                        onDragStart = { },
 
-                        onDrag = { _, _ ->
-                            // Movement handled on end
-                        },
+                        onDrag = { _, _ -> },
 
-                        onDragEnd = {
-                            // Swipe detection is handled below
-                        },
+                        onDragEnd = { },
 
-                        onDragCancel = {
-                            // Nothing
-                        }
+                        onDragCancel = { }
                     )
                 }
             },
@@ -476,7 +440,8 @@ private fun FruitCell(
 
             Text(
                 text = fruitSymbol,
-                fontSize = 20.sp
+                fontSize = 22.sp,
+                color = fruitColor
             )
         }
     }
