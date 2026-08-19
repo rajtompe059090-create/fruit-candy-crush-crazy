@@ -1,1030 +1,470 @@
-package com.fruitcandycrushcarzy.APP.game.viewmodel
+package com.fruitcandycrushcarzy.APP.ui
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.fruitcandycrushcarzy.APP.game.data.ScoreRepository
-import com.fruitcandycrushcarzy.APP.game.data.Transaction
-import com.fruitcandycrushcarzy.APP.game.logic.GameLogic
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.fruitcandycrushcarzy.APP.game.model.Fruit
 import com.fruitcandycrushcarzy.APP.game.model.FruitType
 import com.fruitcandycrushcarzy.APP.game.model.Position
-import com.fruitcandycrushcarzy.APP.game.model.SpecialType
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
+import com.fruitcandycrushcarzy.APP.game.viewmodel.DragDirection
+import com.fruitcandycrushcarzy.APP.game.viewmodel.GameEvent
+import com.fruitcandycrushcarzy.APP.game.viewmodel.GameViewModel
+import kotlin.math.abs
 
-enum class GameEvent {
-    MATCH,
-    SWAP,
-    GAME_OVER,
-    LEVEL_UP,
-    SPECIAL_EXPLOSION,
-    REQUEST_REWARDED_AD,
-    RATE_APP
-}
+@Composable
+fun GameScreen(
+    viewModel: GameViewModel
+) {
+    val state by viewModel.uiState.collectAsState()
 
-enum class DragDirection {
-    UP,
-    DOWN,
-    LEFT,
-    RIGHT
-}
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF101820))
+    ) {
 
-data class GameState(
-    val grid: Array<Array<Fruit?>> =
-        Array(GameLogic.GRID_SIZE) {
-            arrayOfNulls<Fruit>(GameLogic.GRID_SIZE)
-        },
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
 
-    val score: Int = 0,
+            item {
 
-    val walletBalance: Int = 0,
-
-    val transactions: List<Transaction> = emptyList(),
-
-    val highScore: Int = 0,
-
-    val movesLeft: Int = 30,
-
-    val selectedPosition: Position? = null,
-
-    val isProcessing: Boolean = false,
-
-    val level: Int = 1,
-
-    val timeLeftSeconds: Int = 90,
-
-    val targetScore: Int = 1000,
-
-    val lastComboCount: Int = 0,
-
-    val hasMoves: Boolean = true,
-
-    val isLevelUp: Boolean = false,
-
-    val isSoundEnabled: Boolean = true,
-
-    val isMusicEnabled: Boolean = true,
-
-    val isVibrationEnabled: Boolean = true,
-
-    val showSettings: Boolean = false,
-
-    val isStarting: Boolean = true,
-
-    val showRateDialog: Boolean = false
-)
-
-class GameViewModel(
-    private val scoreRepository: ScoreRepository
-) : ViewModel() {
-
-    private val _uiState =
-        MutableStateFlow(GameState())
-
-    val uiState: StateFlow<GameState> =
-        _uiState.asStateFlow()
-
-    private val _events =
-        MutableSharedFlow<GameEvent>()
-
-    val events: SharedFlow<GameEvent> =
-        _events.asSharedFlow()
-
-    private var timerJob: Job? = null
-
-    init {
-
-        val initialGrid =
-            GameLogic.createInitialGrid()
-
-        _uiState.update {
-            it.copy(
-                grid = initialGrid
-            )
-        }
-
-        // High score
-        viewModelScope.launch {
-            scoreRepository.highScoreFlow.collectLatest { high ->
-
-                _uiState.update {
-                    it.copy(
-                        highScore = high
-                    )
-                }
-            }
-        }
-
-        // Wallet balance
-        viewModelScope.launch {
-            scoreRepository.walletBalanceFlow.collectLatest { balance ->
-
-                _uiState.update {
-                    it.copy(
-                        walletBalance = balance
-                    )
-                }
-            }
-        }
-
-        // Transaction history
-        viewModelScope.launch {
-            scoreRepository.transactionsFlow.collectLatest { transactions ->
-
-                _uiState.update {
-                    it.copy(
-                        transactions = transactions
-                    )
-                }
-            }
-        }
-
-        // Sound
-        viewModelScope.launch {
-            scoreRepository.soundEnabledFlow.collectLatest { enabled ->
-
-                _uiState.update {
-                    it.copy(
-                        isSoundEnabled = enabled
-                    )
-                }
-            }
-        }
-
-        // Music
-        viewModelScope.launch {
-            scoreRepository.musicEnabledFlow.collectLatest { enabled ->
-
-                _uiState.update {
-                    it.copy(
-                        isMusicEnabled = enabled
-                    )
-                }
-            }
-        }
-
-        // Vibration
-        viewModelScope.launch {
-            scoreRepository.vibrationEnabledFlow.collectLatest { enabled ->
-
-                _uiState.update {
-                    it.copy(
-                        isVibrationEnabled = enabled
-                    )
-                }
-            }
-        }
-
-        // Rating
-        viewModelScope.launch {
-
-            scoreRepository.gamesPlayedFlow.collectLatest { games ->
-
-                scoreRepository.hasRatedFlow.collectLatest { hasRated ->
-
-                    if (
-                        !hasRated &&
-                        games >= 3 &&
-                        games % 5 == 0
-                    ) {
-
-                        _uiState.update {
-                            it.copy(
-                                showRateDialog = true
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        startGameSequence()
-    }
-
-    private fun startGameSequence() {
-
-        viewModelScope.launch {
-
-            _uiState.update {
-                it.copy(
-                    isStarting = true
+                Text(
+                    text = "🍓 Fruit Candy Crush 🍬",
+                    color = Color.White,
+                    fontSize = 26.sp,
+                    modifier = Modifier.padding(top = 12.dp)
                 )
-            }
 
-            delay(2500)
-
-            _uiState.update {
-                it.copy(
-                    isStarting = false
+                Spacer(
+                    modifier = Modifier.height(12.dp)
                 )
-            }
 
-            startTimer()
-        }
-    }
-
-    fun resetGame() {
-
-        timerJob?.cancel()
-
-        val initialGrid =
-            GameLogic.createInitialGrid()
-
-        _uiState.update {
-
-            GameState(
-                grid = initialGrid,
-                highScore = it.highScore,
-                walletBalance = it.walletBalance,
-                transactions = it.transactions,
-                isSoundEnabled = it.isSoundEnabled,
-                isMusicEnabled = it.isMusicEnabled,
-                isVibrationEnabled = it.isVibrationEnabled
-            )
-        }
-
-        viewModelScope.launch {
-            scoreRepository.incrementGamesPlayed()
-        }
-
-        startGameSequence()
-    }
-
-    private fun startTimer() {
-
-        timerJob?.cancel()
-
-        timerJob =
-            viewModelScope.launch {
-
-                while (
-                    _uiState.value.timeLeftSeconds > 0 &&
-                    _uiState.value.movesLeft > 0 &&
-                    !_uiState.value.isLevelUp
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
 
-                    if (
-                        !_uiState.value.showSettings &&
-                        !_uiState.value.isStarting
+                    InfoBox(
+                        title = "LEVEL",
+                        value = state.level.toString()
+                    )
+
+                    InfoBox(
+                        title = "SCORE",
+                        value = state.score.toString()
+                    )
+
+                    InfoBox(
+                        title = "MOVES",
+                        value = state.movesLeft.toString()
+                    )
+
+                    InfoBox(
+                        title = "TIME",
+                        value = state.timeLeftSeconds.toString()
+                    )
+                }
+
+                Spacer(
+                    modifier = Modifier.height(12.dp)
+                )
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
 
-                        delay(1000)
+                        Text(
+                            text = "Target: ${state.targetScore}",
+                            fontSize = 18.sp
+                        )
 
-                        _uiState.update {
+                        Spacer(
+                            modifier = Modifier.height(8.dp)
+                        )
 
-                            it.copy(
-                                timeLeftSeconds =
-                                    (
-                                        it.timeLeftSeconds - 1
-                                    ).coerceAtLeast(0)
-                            )
-                        }
-
-                    } else {
-
-                        delay(100)
+                        GameBoard(
+                            grid = state.grid,
+                            selectedPosition = state.selectedPosition,
+                            enabled =
+                                !state.isProcessing &&
+                                !state.isStarting &&
+                                !state.isLevelUp,
+                            onCellClick = {
+                                viewModel.onCellClick(it)
+                            },
+                            onSwipe = { position, direction ->
+                                viewModel.onSwipe(
+                                    position,
+                                    direction
+                                )
+                            }
+                        )
                     }
                 }
-            }
-    }
 
-    fun onCellClick(position: Position) {
+                Spacer(
+                    modifier = Modifier.height(16.dp)
+                )
 
-        if (
-            _uiState.value.isProcessing ||
-            _uiState.value.isStarting ||
-            _uiState.value.movesLeft <= 0 ||
-            _uiState.value.timeLeftSeconds <= 0 ||
-            _uiState.value.isLevelUp
-        ) return
+                Text(
+                    text = "💰 Wallet: ₹${state.walletBalance}",
+                    color = Color(0xFFFFD54F),
+                    fontSize = 22.sp
+                )
 
-        val selected =
-            _uiState.value.selectedPosition
+                Spacer(
+                    modifier = Modifier.height(10.dp)
+                )
 
-        if (selected == null) {
+                Text(
+                    text = "🏆 High Score: ${state.highScore}",
+                    color = Color.White,
+                    fontSize = 18.sp
+                )
 
-            _uiState.update {
-                it.copy(
-                    selectedPosition = position
+                Spacer(
+                    modifier = Modifier.height(16.dp)
+                )
+
+                Row(
+                    horizontalArrangement = Arrangement.Center
+                ) {
+
+                    Button(
+                        onClick = {
+                            viewModel.shuffleBoard()
+                        },
+                        enabled =
+                            !state.isProcessing &&
+                            !state.isLevelUp
+                    ) {
+                        Text("🔀 Shuffle")
+                    }
+
+                    Spacer(
+                        modifier = Modifier.width(8.dp)
+                    )
+
+                    Button(
+                        onClick = {
+                            viewModel.requestRewardedAd()
+                        },
+                        enabled =
+                            !state.isProcessing &&
+                            !state.isLevelUp
+                    ) {
+                        Text("🎁 Get Moves")
+                    }
+                }
+
+                Spacer(
+                    modifier = Modifier.height(10.dp)
+                )
+
+                Button(
+                    onClick = {
+                        viewModel.resetGame()
+                    }
+                ) {
+                    Text("🔄 New Game")
+                }
+
+                Spacer(
+                    modifier = Modifier.height(18.dp)
+                )
+
+                Text(
+                    text = "Earnings per level",
+                    color = Color.White,
+                    fontSize = 18.sp
+                )
+
+                Text(
+                    text = "Level 1-50  → ₹2\n" +
+                            "Level 51-100 → ₹3\n" +
+                            "Level 101-150 → ₹5\n" +
+                            "Level 151-200 → ₹10\n" +
+                            "Level 201+ → ₹15",
+                    color = Color.LightGray,
+                    fontSize = 15.sp
+                )
+
+                Spacer(
+                    modifier = Modifier.height(20.dp)
+                )
+
+                Text(
+                    text = "Recent Transactions",
+                    color = Color.White,
+                    fontSize = 20.sp
+                )
+
+                Spacer(
+                    modifier = Modifier.height(8.dp)
+                )
+
+                state.transactions.take(10).forEach { transaction ->
+
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 3.dp)
+                    ) {
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(10.dp),
+                            horizontalArrangement =
+                                Arrangement.SpaceBetween
+                        ) {
+
+                            Text(
+                                text = transaction.description
+                            )
+
+                            Text(
+                                text = "+₹${transaction.amount}"
+                            )
+                        }
+                    }
+                }
+
+                Spacer(
+                    modifier = Modifier.height(20.dp)
                 )
             }
+        }
 
-        } else {
+        if (state.isStarting) {
 
-            if (
-                GameLogic.isAdjacent(
-                    selected,
-                    position
-                )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xCC000000)),
+                contentAlignment = Alignment.Center
             ) {
 
-                swapAndProcess(
-                    selected,
-                    position
+                Text(
+                    text = "🍓 GET READY! 🍬",
+                    color = Color.White,
+                    fontSize = 30.sp
                 )
+            }
+        }
 
-            } else {
+        if (state.isLevelUp) {
 
-                _uiState.update {
-                    it.copy(
-                        selectedPosition = position
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xCC000000)),
+                contentAlignment = Alignment.Center
+            ) {
+
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+
+                    Text(
+                        text = "🎉 LEVEL UP! 🎉",
+                        color = Color.White,
+                        fontSize = 32.sp
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(12.dp)
+                    )
+
+                    Text(
+                        text = "Next Level: ${state.level + 1}",
+                        color = Color(0xFFFFD54F),
+                        fontSize = 22.sp
                     )
                 }
             }
         }
     }
+}
 
-    private fun swapAndProcess(
-        p1: Position,
-        p2: Position
+@Composable
+private fun InfoBox(
+    title: String,
+    value: String
+) {
+
+    Card(
+        modifier = Modifier.size(
+            width = 82.dp,
+            height = 70.dp
+        ),
+        shape = RoundedCornerShape(12.dp)
     ) {
 
-        viewModelScope.launch {
-
-            _uiState.update {
-
-                it.copy(
-                    isProcessing = true,
-                    selectedPosition = null
-                )
-            }
-
-            _events.emit(
-                GameEvent.SWAP
-            )
-
-            val currentGrid =
-                copyGrid(
-                    _uiState.value.grid
-                )
-
-            val temp =
-                currentGrid[p1.row][p1.col]
-
-            currentGrid[p1.row][p1.col] =
-                currentGrid[p2.row][p2.col]
-
-            currentGrid[p2.row][p2.col] =
-                temp
-
-            _uiState.update {
-                it.copy(
-                    grid = currentGrid
-                )
-            }
-
-            delay(300)
-
-            val matches =
-                GameLogic.findMatchGroups(
-                    currentGrid
-                )
-
-            if (matches.isEmpty()) {
-
-                val revertGrid =
-                    copyGrid(
-                        _uiState.value.grid
-                    )
-
-                val tempBack =
-                    revertGrid[p1.row][p1.col]
-
-                revertGrid[p1.row][p1.col] =
-                    revertGrid[p2.row][p2.col]
-
-                revertGrid[p2.row][p2.col] =
-                    tempBack
-
-                _uiState.update {
-                    it.copy(
-                        grid = revertGrid
-                    )
-                }
-
-            } else {
-
-                _uiState.update {
-                    it.copy(
-                        movesLeft =
-                            it.movesLeft - 1
-                    )
-                }
-
-                processMatches(
-                    currentGrid,
-                    triggeredBy = p2
-                )
-            }
-
-            _uiState.update {
-                it.copy(
-                    isProcessing = false
-                )
-            }
-
-            checkMovesAvailable()
-        }
-    }
-
-    private fun checkMovesAvailable() {
-
-        val hasMoves =
-            GameLogic.hasAvailableMoves(
-                _uiState.value.grid
-            )
-
-        _uiState.update {
-            it.copy(
-                hasMoves = hasMoves
-            )
-        }
-
-        if (
-            !hasMoves &&
-            _uiState.value.movesLeft > 0 &&
-            !_uiState.value.isProcessing
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
 
-            viewModelScope.launch {
+            Text(
+                text = title,
+                fontSize = 11.sp
+            )
 
-                delay(1000)
+            Text(
+                text = value,
+                fontSize = 19.sp
+            )
+        }
+    }
+}
 
-                if (
-                    !GameLogic.hasAvailableMoves(
-                        _uiState.value.grid
-                    )
-                ) {
+@Composable
+private fun GameBoard(
+    grid: Array<Array<Fruit?>>,
+    selectedPosition: Position?,
+    enabled: Boolean,
+    onCellClick: (Position) -> Unit,
+    onSwipe: (Position, DragDirection) -> Unit
+) {
 
-                    shuffleBoard(
-                        isAuto = true
+    Column(
+        modifier = Modifier
+            .background(
+                Color(0xFF263238),
+                RoundedCornerShape(12.dp)
+            )
+            .padding(5.dp)
+    ) {
+
+        grid.forEachIndexed { row, fruits ->
+
+            Row {
+
+                fruits.forEachIndexed { col, fruit ->
+
+                    val position =
+                        Position(row, col)
+
+                    FruitCell(
+                        fruit = fruit,
+                        selected =
+                            selectedPosition == position,
+                        enabled = enabled,
+                        onClick = {
+                            onCellClick(position)
+                        },
+                        onSwipe = { direction ->
+                            onSwipe(
+                                position,
+                                direction
+                            )
+                        }
                     )
                 }
             }
         }
     }
+}
 
-    private suspend fun processMatches(
-        grid: Array<Array<Fruit?>>,
-        triggeredBy: Position? = null
+@Composable
+private fun FruitCell(
+    fruit: Fruit?,
+    selected: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    onSwipe: (DragDirection) -> Unit
+) {
+
+    val fruitText =
+        when (fruit?.type) {
+
+            FruitType.APPLE -> "🍎"
+            FruitType.BANANA -> "🍌"
+            FruitType.GRAPE -> "🍇"
+            FruitType.ORANGE -> "🍊"
+            FruitType.STRAWBERRY -> "🍓"
+            FruitType.WATERMELON -> "🍉"
+
+            null -> " "
+            else -> "🍬"
+        }
+
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .padding(2.dp)
+            .background(
+                if (selected)
+                    Color(0xFFFFD54F)
+                else
+                    Color(0xFF37474F),
+                RoundedCornerShape(8.dp)
+            )
+            .pointerInput(enabled) {
+
+                if (enabled) {
+
+                    detectDragGestures(
+                        onDragEnd = {},
+                        onDragCancel = {},
+                        onDrag = { _, _ -> },
+                        onDragStart = { _ -> }
+                    )
+                }
+            },
+        contentAlignment = Alignment.Center
     ) {
 
-        var currentGrid = grid
-
-        var combo = 0
-
-        do {
-
-            val groups =
-                GameLogic.findMatchGroups(
-                    currentGrid
-                )
-
-            if (groups.isNotEmpty()) {
-
-                combo++
-
-                val matchPositions =
-                    groups
-                        .flatten()
-                        .toSet()
-
-                val affectedPositions =
-                    GameLogic.getAffectedPositions(
-                        currentGrid,
-                        matchPositions
-                    )
-
-                if (
-                    affectedPositions.size >
-                    matchPositions.size
-                ) {
-
-                    _events.emit(
-                        GameEvent.SPECIAL_EXPLOSION
-                    )
-                }
-
-                val basePoints =
-                    affectedPositions.size * 10
-
-                val comboBonus =
-                    (combo - 1) * 20
-
-                val specialBonus =
-                    if (
-                        affectedPositions.size >
-                        matchPositions.size
-                    ) {
-                        100
-                    } else {
-                        0
-                    }
-
-                val points =
-                    (
-                        basePoints +
-                        comboBonus +
-                        specialBonus
-                    ) * combo
-
-                _events.emit(
-                    GameEvent.MATCH
-                )
-
-                val specialFruitsToCreate =
-                    mutableListOf<
-                        Triple<
-                            Position,
-                            FruitType,
-                            SpecialType
-                        >
-                    >()
-
-                groups.forEach { group ->
-
-                    if (group.size >= 4) {
-
-                        val type =
-                            currentGrid[
-                                group[0].row
-                            ][
-                                group[0].col
-                            ]?.type
-                                ?: return@forEach
-
-                        val specialType =
-                            when (group.size) {
-
-                                4 ->
-
-                                    if (
-                                        group[0].row ==
-                                        group[1].row
-                                    ) {
-
-                                        SpecialType.COL_BLAST
-
-                                    } else {
-
-                                        SpecialType.ROW_BLAST
-                                    }
-
-                                else ->
-                                    SpecialType.BOMB
-                            }
-
-                        val pos =
-
-                            if (
-                                triggeredBy != null &&
-                                triggeredBy in group
-                            ) {
-
-                                triggeredBy
-
-                            } else {
-
-                                group[0]
-                            }
-
-                        specialFruitsToCreate.add(
-                            Triple(
-                                pos,
-                                type,
-                                specialType
-                            )
-                        )
-                    }
-                }
-
-                affectedPositions.forEach { pos ->
-
-                    currentGrid[
-                        pos.row
-                    ][
-                        pos.col
-                    ] = null
-                }
-
-                specialFruitsToCreate.forEach {
-                    (pos, type, special) ->
-
-                    currentGrid[
-                        pos.row
-                    ][
-                        pos.col
-                    ] =
-                        Fruit(
-                            type,
-                            special
-                        )
-                }
-
-                val currentScore =
-                    _uiState.value.score
-
-                val newScore =
-                    currentScore + points
-
-                _uiState.update {
-
-                    it.copy(
-                        grid =
-                            copyGrid(
-                                currentGrid
-                            ),
-
-                        score = newScore,
-
-                        lastComboCount = combo
-                    )
-                }
-
-                if (
-                    newScore >
-                    _uiState.value.highScore
-                ) {
-
-                    scoreRepository.updateHighScore(
-                        newScore
-                    )
-                }
-
-                delay(400)
-
-                GameLogic.applyGravity(
-                    currentGrid
-                )
-
-                _uiState.update {
-
-                    it.copy(
-                        grid =
-                            copyGrid(
-                                currentGrid
-                            )
-                    )
-                }
-
-                delay(300)
-
-                GameLogic.refillGrid(
-                    currentGrid
-                )
-
-                _uiState.update {
-
-                    it.copy(
-                        grid =
-                            copyGrid(
-                                currentGrid
-                            )
-                    )
-                }
-
-                delay(300)
-            }
-
-        } while (
-            GameLogic.findMatchGroups(
-                currentGrid
-            ).isNotEmpty()
-        )
-
-        if (
-            _uiState.value.score >=
-            _uiState.value.targetScore
+        Button(
+            onClick = onClick,
+            enabled = enabled,
+            modifier = Modifier.fillMaxSize(),
+            shape = RoundedCornerShape(8.dp)
         ) {
 
-            levelUp()
-        }
-    }
-
-    // LEVEL EARNING SYSTEM
-    private fun levelUp() {
-
-        viewModelScope.launch {
-
-            val completedLevel =
-                _uiState.value.level
-
-            val earning =
-
-                when {
-
-                    completedLevel in 1..50 ->
-                        2
-
-                    completedLevel in 51..100 ->
-                        3
-
-                    completedLevel in 101..150 ->
-                        5
-
-                    completedLevel in 151..200 ->
-                        10
-
-                    else ->
-                        15
-                }
-
-            // Add money + transaction history
-            scoreRepository.addEarning(
-                earning
+            Text(
+                text = fruitText,
+                fontSize = 22.sp
             )
-
-            _events.emit(
-                GameEvent.LEVEL_UP
-            )
-
-            _uiState.update {
-
-                it.copy(
-                    isLevelUp = true
-                )
-            }
-
-            delay(2000)
-
-            _uiState.update {
-
-                it.copy(
-
-                    level =
-                        completedLevel + 1,
-
-                    targetScore =
-                        it.targetScore +
-                        (
-                            completedLevel + 1
-                        ) * 1000,
-
-                    movesLeft =
-                        it.movesLeft + 10,
-
-                    timeLeftSeconds =
-                        it.timeLeftSeconds + 60,
-
-                    isLevelUp = false
-                )
-            }
-
-            startTimer()
-        }
-    }
-
-    fun shuffleBoard(
-        isAuto: Boolean = false
-    ) {
-
-        if (
-            _uiState.value.isProcessing ||
-            _uiState.value.isLevelUp
-        ) return
-
-        val cost =
-
-            if (isAuto) {
-
-                0
-
-            } else {
-
-                if (
-                    _uiState.value.hasMoves
-                ) {
-
-                    2
-
-                } else {
-
-                    0
-                }
-            }
-
-        if (
-            _uiState.value.movesLeft <
-            cost
-        ) return
-
-        viewModelScope.launch {
-
-            _uiState.update {
-
-                it.copy(
-                    isProcessing = true,
-
-                    movesLeft =
-                        it.movesLeft - cost
-                )
-            }
-
-            val newGrid =
-                GameLogic.createInitialGrid()
-
-            _uiState.update {
-
-                it.copy(
-                    grid = newGrid,
-                    hasMoves = true
-                )
-            }
-
-            delay(500)
-
-            _uiState.update {
-
-                it.copy(
-                    isProcessing = false
-                )
-            }
-
-            checkMovesAvailable()
-        }
-    }
-
-    fun toggleSound() {
-
-        viewModelScope.launch {
-
-            scoreRepository.toggleSound(
-                !_uiState.value.isSoundEnabled
-            )
-        }
-    }
-
-    fun toggleMusic() {
-
-        viewModelScope.launch {
-
-            scoreRepository.toggleMusic(
-                !_uiState.value.isMusicEnabled
-            )
-        }
-    }
-
-    fun toggleVibration() {
-
-        viewModelScope.launch {
-
-            scoreRepository.toggleVibration(
-                !_uiState.value.isVibrationEnabled
-            )
-        }
-    }
-
-    fun toggleSettings() {
-
-        _uiState.update {
-
-            it.copy(
-                showSettings =
-                    !it.showSettings
-            )
-        }
-    }
-
-    fun requestRewardedAd() {
-
-        viewModelScope.launch {
-
-            _events.emit(
-                GameEvent.REQUEST_REWARDED_AD
-            )
-        }
-    }
-
-    fun grantRewardMoves(
-        count: Int = 5
-    ) {
-
-        _uiState.update {
-
-            it.copy(
-                movesLeft =
-                    it.movesLeft + count
-            )
-        }
-
-        checkMovesAvailable()
-    }
-
-    fun onRateApp() {
-
-        viewModelScope.launch {
-
-            scoreRepository.setHasRated(
-                true
-            )
-
-            _uiState.update {
-
-                it.copy(
-                    showRateDialog = false
-                )
-            }
-
-            _events.emit(
-                GameEvent.RATE_APP
-            )
-        }
-    }
-
-    fun onDismissRateDialog() {
-
-        _uiState.update {
-
-            it.copy(
-                showRateDialog = false
-            )
-        }
-    }
-
-    fun onSwipe(
-        position: Position,
-        direction: DragDirection
-    ) {
-
-        if (
-            _uiState.value.isProcessing ||
-            _uiState.value.isStarting ||
-            _uiState.value.movesLeft <= 0 ||
-            _uiState.value.timeLeftSeconds <= 0 ||
-            _uiState.value.isLevelUp
-        ) return
-
-        val targetPos =
-
-            when (direction) {
-
-                DragDirection.UP ->
-
-                    Position(
-                        position.row - 1,
-                        position.col
-                    )
-
-                DragDirection.DOWN ->
-
-                    Position(
-                        position.row + 1,
-                        position.col
-                    )
-
-                DragDirection.LEFT ->
-
-                    Position(
-                        position.row,
-                        position.col - 1
-                    )
-
-                DragDirection.RIGHT ->
-
-                    Position(
-                        position.row,
-                        position.col + 1
-                    )
-            }
-
-        if (
-            targetPos.row in
-            0 until GameLogic.GRID_SIZE &&
-
-            targetPos.col in
-            0 until GameLogic.GRID_SIZE
-        ) {
-
-            swapAndProcess(
-                position,
-                targetPos
-            )
-        }
-    }
-
-    private fun copyGrid(
-        original: Array<Array<Fruit?>>
-    ): Array<Array<Fruit?>> {
-
-        return Array(
-            GameLogic.GRID_SIZE
-        ) { r ->
-
-            Array(
-                GameLogic.GRID_SIZE
-            ) { c ->
-
-                original[r][c]
-            }
         }
     }
 }
