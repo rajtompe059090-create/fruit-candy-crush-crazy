@@ -87,12 +87,12 @@ fun GameScreen(
                 SmallInfo("TIME", state.timeLeftSeconds.toString())
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(7.dp))
 
             Text(
-                text = "Target: ${state.targetScore}",
+                text = "TARGET ${state.targetScore}",
                 color = Color(0xFFFFD54F),
-                fontSize = 15.sp
+                fontSize = 14.sp
             )
 
             Spacer(modifier = Modifier.height(5.dp))
@@ -134,7 +134,7 @@ fun GameScreen(
                     Text("🔀")
                 }
 
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(6.dp))
 
                 Button(
                     onClick = {
@@ -147,7 +147,7 @@ fun GameScreen(
                     Text("🎁 +5")
                 }
 
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(6.dp))
 
                 Button(
                     onClick = {
@@ -161,9 +161,9 @@ fun GameScreen(
             Spacer(modifier = Modifier.height(5.dp))
 
             Text(
-                text = "Swipe fruits to match 3 or more",
+                text = "👉 Swipe a fruit up / down / left / right",
                 color = Color.LightGray,
-                fontSize = 13.sp
+                fontSize = 12.sp
             )
         }
 
@@ -206,7 +206,7 @@ fun GameScreen(
                     Spacer(modifier = Modifier.height(10.dp))
 
                     Text(
-                        text = "Level ${state.level + 1}",
+                        text = "Next Level: ${state.level + 1}",
                         color = Color(0xFFFFD54F),
                         fontSize = 22.sp
                     )
@@ -337,54 +337,85 @@ private fun FruitCell(
             .size(42.dp)
             .padding(2.dp)
             .background(
-                if (selected)
+                if (selected) {
                     Color(0xFFFFD54F)
-                else
-                    Color(0xFF37474F),
+                } else {
+                    Color(0xFF37474F)
+                },
                 RoundedCornerShape(8.dp)
             )
             .pointerInput(enabled) {
 
                 if (enabled) {
 
+                    var totalX = 0f
+                    var totalY = 0f
+
                     detectDragGestures(
-                        onDragEnd = {},
-                        onDragCancel = {},
-                        onDrag = { _, _ -> },
-                        onDragStart = { _ -> }
+
+                        onDragStart = {
+                            totalX = 0f
+                            totalY = 0f
+                        },
+
+                        onDrag = { change, dragAmount ->
+
+                            change.consume()
+
+                            totalX += dragAmount.x
+                            totalY += dragAmount.y
+                        },
+
+                        onDragEnd = {
+
+                            val minimumSwipe = 12f
+
+                            if (
+                                abs(totalX) >= minimumSwipe ||
+                                abs(totalY) >= minimumSwipe
+                            ) {
+
+                                if (abs(totalX) > abs(totalY)) {
+
+                                    if (totalX > 0) {
+                                        onSwipe(
+                                            DragDirection.RIGHT
+                                        )
+                                    } else {
+                                        onSwipe(
+                                            DragDirection.LEFT
+                                        )
+                                    }
+
+                                } else {
+
+                                    if (totalY > 0) {
+                                        onSwipe(
+                                            DragDirection.DOWN
+                                        )
+                                    } else {
+                                        onSwipe(
+                                            DragDirection.UP
+                                        )
+                                    }
+                                }
+                            }
+                        },
+
+                        onDragCancel = {
+                            totalX = 0f
+                            totalY = 0f
+                        }
                     )
                 }
             },
         contentAlignment = Alignment.Center
     ) {
 
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .pointerInput(enabled) {
-
-                    if (enabled) {
-
-                        detectDragGestures(
-
-                            onDragStart = {},
-
-                            onDrag = { _, _ -> },
-
-                            onDragCancel = {},
-
-                            onDragEnd = {}
-                        )
-                    }
-                },
-            contentAlignment = Alignment.Center
-        ) {
-
-            Text(
-                text = fruitText,
-                fontSize = 25.sp
-            )
-        }
+        Text(
+            text = fruitText,
+            fontSize = 25.sp
+        )
     }
 }
 
