@@ -1,0 +1,9 @@
+package com.fruitcandycrushcarzy.APP.game.data
+
+data class Transaction(
+    val id: Long,
+    val type: String,
+    val amount: Int,
+    val description: String,
+    val timestamp: Long
+)
