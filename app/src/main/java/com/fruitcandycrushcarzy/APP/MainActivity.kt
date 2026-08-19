@@ -3,7 +3,6 @@ package com.fruitcandycrushcarzy.APP
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.media.MediaPlayer
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -12,11 +11,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.google.android.gms.ads.MobileAds
 import com.fruitcandycrushcarzy.APP.game.data.ScoreRepository
 import com.fruitcandycrushcarzy.APP.game.util.AdManager
 import com.fruitcandycrushcarzy.APP.game.util.SoundManager
@@ -25,12 +25,11 @@ import com.fruitcandycrushcarzy.APP.game.viewmodel.GameEvent
 import com.fruitcandycrushcarzy.APP.game.viewmodel.GameViewModel
 import com.fruitcandycrushcarzy.APP.ui.GameScreen
 import com.fruitcandycrushcarzy.APP.ui.theme.FRUITCANDYCRUSHCARZYTheme
+import com.google.android.gms.ads.MobileAds
 
 class MainActivity : ComponentActivity() {
 
-    override fun onCreate(
-        savedInstanceState: Bundle?
-    ) {
+    override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         MobileAds.initialize(this) {}
@@ -41,80 +40,101 @@ class MainActivity : ComponentActivity() {
 
             FRUITCANDYCRUSHCARZYTheme {
 
-                val context =
-                    LocalContext.current
+                val context = androidx.compose.ui.platform.LocalContext.current
+                val lifecycleOwner = LocalLifecycleOwner.current
 
-                val scoreRepository =
-                    remember {
-                        ScoreRepository(context)
-                    }
+                val scoreRepository = remember {
+                    ScoreRepository(context)
+                }
 
-                val viewModel:
-                    GameViewModel =
-                    viewModel(
-                        factory =
-                            object :
-                                ViewModelProvider.Factory {
+                val viewModel: GameViewModel = viewModel(
+                    factory = object : ViewModelProvider.Factory {
 
-                                override fun <T : ViewModel>
-                                    create(
-                                        modelClass: Class<T>
-                                    ): T {
-
-                                    return GameViewModel(
-                                        scoreRepository
-                                    ) as T
-                                }
-                            }
-                    )
-
-                val uiState by
-                    viewModel.uiState.collectAsState()
-
-                val soundManager =
-                    remember {
-                        SoundManager(context)
-                    }
-
-                val vibrationManager =
-                    remember {
-                        VibrationManager(context)
-                    }
-
-                val adManager =
-                    remember {
-                        AdManager(context)
-                    }
-
-                val mediaPlayer =
-                    remember {
-
-                        MediaPlayer.create(
-                            context,
-                            R.raw.xtremefreddy_loop1
-                        )?.apply {
-
-                            isLooping = true
+                        override fun <T : ViewModel> create(
+                            modelClass: Class<T>
+                        ): T {
+                            @Suppress("UNCHECKED_CAST")
+                            return GameViewModel(scoreRepository) as T
                         }
                     }
+                )
 
-                DisposableEffect(Unit) {
+                val uiState by viewModel.uiState.collectAsState()
 
-                    onDispose {
+                val soundManager = remember {
+                    SoundManager(context)
+                }
 
-                        mediaPlayer?.release()
+                val vibrationManager = remember {
+                    VibrationManager(context)
+                }
 
-                        soundManager.release()
+                val adManager = remember {
+                    AdManager(context)
+                }
+
+                /*
+                 * MUSIC
+                 *
+                 * Music is controlled by the game setting.
+                 * It also pauses when the app goes to background
+                 * or the phone is locked.
+                 */
+
+                val mediaPlayer = remember {
+                    android.media.MediaPlayer.create(
+                        context,
+                        R.raw.xtremefreddy_loop1
+                    )?.apply {
+                        isLooping = true
                     }
                 }
 
-                LaunchedEffect(
+                DisposableEffect(
+                    lifecycleOwner,
                     uiState.isMusicEnabled
                 ) {
 
-                    if (
-                        uiState.isMusicEnabled
-                    ) {
+                    val observer =
+                        LifecycleEventObserver { _, event ->
+
+                            when (event) {
+
+                                Lifecycle.Event.ON_RESUME -> {
+
+                                    if (
+                                        uiState.isMusicEnabled &&
+                                        mediaPlayer != null &&
+                                        !mediaPlayer.isPlaying
+                                    ) {
+                                        mediaPlayer.start()
+                                    }
+                                }
+
+                                Lifecycle.Event.ON_PAUSE -> {
+
+                                    if (
+                                        mediaPlayer != null &&
+                                        mediaPlayer.isPlaying
+                                    ) {
+                                        mediaPlayer.pause()
+                                    }
+                                }
+
+                                else -> Unit
+                            }
+                        }
+
+                    lifecycleOwner.lifecycle.addObserver(observer)
+
+                    onDispose {
+                        lifecycleOwner.lifecycle.removeObserver(observer)
+                    }
+                }
+
+                LaunchedEffect(uiState.isMusicEnabled) {
+
+                    if (uiState.isMusicEnabled) {
 
                         if (
                             mediaPlayer != null &&
@@ -134,6 +154,24 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                DisposableEffect(Unit) {
+
+                    onDispose {
+
+                        try {
+                            mediaPlayer?.stop()
+                        } catch (_: Exception) {
+                        }
+
+                        mediaPlayer?.release()
+                        soundManager.release()
+                    }
+                }
+
+                /*
+                 * GAME EVENTS
+                 */
+
                 LaunchedEffect(Unit) {
 
                     viewModel.events.collect { event ->
@@ -142,64 +180,62 @@ class MainActivity : ComponentActivity() {
 
                             GameEvent.MATCH -> {
 
-                                if (
-                                    uiState.isSoundEnabled
-                                ) {
-                                    soundManager
-                                        .playMatch()
+                                if (viewModel.uiState.value.isSoundEnabled) {
+                                    soundManager.playMatch()
                                 }
 
                                 if (
-                                    uiState.isVibrationEnabled
+                                    viewModel.uiState.value
+                                        .isVibrationEnabled
                                 ) {
-                                    vibrationManager
-                                        .vibrate(50)
+                                    vibrationManager.vibrate(50)
                                 }
                             }
 
                             GameEvent.SWAP -> {
 
                                 if (
-                                    uiState.isSoundEnabled
+                                    viewModel.uiState.value.isSoundEnabled
                                 ) {
-                                    soundManager
-                                        .playSwap()
+                                    soundManager.playSwap()
                                 }
                             }
 
                             GameEvent.SPECIAL_EXPLOSION -> {
 
                                 if (
-                                    uiState.isSoundEnabled
+                                    viewModel.uiState.value.isSoundEnabled
                                 ) {
-                                    soundManager
-                                        .playExplosion()
+                                    soundManager.playExplosion()
                                 }
 
                                 if (
-                                    uiState.isVibrationEnabled
+                                    viewModel.uiState.value
+                                        .isVibrationEnabled
                                 ) {
-                                    vibrationManager
-                                        .vibrate(100)
+                                    vibrationManager.vibrate(100)
                                 }
                             }
 
                             GameEvent.LEVEL_UP -> {
 
                                 if (
-                                    uiState.isSoundEnabled
+                                    viewModel.uiState.value.isSoundEnabled
                                 ) {
-                                    soundManager
-                                        .playLevelUp()
+                                    soundManager.playLevelUp()
                                 }
 
                                 if (
-                                    uiState.isVibrationEnabled
+                                    viewModel.uiState.value
+                                        .isVibrationEnabled
                                 ) {
-                                    vibrationManager
-                                        .vibrate(200)
+                                    vibrationManager.vibrate(200)
                                 }
 
+                                /*
+                                 * Interstitial test ad.
+                                 * Keep this as test ad while developing.
+                                 */
                                 adManager.showInterstitial(
                                     this@MainActivity
                                 ) {}
@@ -207,32 +243,32 @@ class MainActivity : ComponentActivity() {
 
                             GameEvent.REQUEST_REWARDED_AD -> {
 
+                                /*
+                                 * Rewarded test ad.
+                                 * After the complete ad the player
+                                 * receives 5 extra moves.
+                                 */
                                 adManager.showRewarded(
                                     this@MainActivity
                                 ) {
-
-                                    viewModel
-                                        .grantRewardMoves(5)
+                                    viewModel.grantRewardMoves(5)
                                 }
                             }
 
                             GameEvent.RATE_APP -> {
 
-                                val intent =
-                                    Intent(
-                                        Intent.ACTION_VIEW,
-                                        Uri.parse(
-                                            "market://details?id=$packageName"
-                                        )
+                                val intent = Intent(
+                                    Intent.ACTION_VIEW,
+                                    Uri.parse(
+                                        "market://details?id=$packageName"
                                     )
+                                )
 
                                 try {
 
                                     startActivity(intent)
 
-                                } catch (
-                                    e: Exception
-                                ) {
+                                } catch (_: Exception) {
 
                                     startActivity(
                                         Intent(
@@ -245,7 +281,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
 
-                            GameEvent.GAME_OVER -> {}
+                            GameEvent.GAME_OVER -> Unit
 
                         }
                     }
