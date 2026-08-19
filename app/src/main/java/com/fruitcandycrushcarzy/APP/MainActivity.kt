@@ -11,6 +11,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -40,7 +41,7 @@ class MainActivity : ComponentActivity() {
 
             FRUITCANDYCRUSHCARZYTheme {
 
-                val context = androidx.compose.ui.platform.LocalContext.current
+                val context = LocalContext.current
                 val lifecycleOwner = LocalLifecycleOwner.current
 
                 val scoreRepository = remember {
@@ -75,10 +76,6 @@ class MainActivity : ComponentActivity() {
 
                 /*
                  * MUSIC
-                 *
-                 * Music is controlled by the game setting.
-                 * It also pauses when the app goes to background
-                 * or the phone is locked.
                  */
 
                 val mediaPlayer = remember {
@@ -169,6 +166,25 @@ class MainActivity : ComponentActivity() {
                 }
 
                 /*
+                 * APP OPEN INTERSTITIAL
+                 *
+                 * AdManager pehle ad preload karega.
+                 * Thoda delay isliye diya hai taaki ad ko
+                 * load hone ka chance mile.
+                 */
+
+                LaunchedEffect(Unit) {
+
+                    kotlinx.coroutines.delay(2500)
+
+                    adManager.showInterstitial(
+                        this@MainActivity
+                    ) {
+                        // Game continues after ad closes.
+                    }
+                }
+
+                /*
                  * GAME EVENTS
                  */
 
@@ -180,7 +196,10 @@ class MainActivity : ComponentActivity() {
 
                             GameEvent.MATCH -> {
 
-                                if (viewModel.uiState.value.isSoundEnabled) {
+                                if (
+                                    viewModel.uiState.value
+                                        .isSoundEnabled
+                                ) {
                                     soundManager.playMatch()
                                 }
 
@@ -195,7 +214,8 @@ class MainActivity : ComponentActivity() {
                             GameEvent.SWAP -> {
 
                                 if (
-                                    viewModel.uiState.value.isSoundEnabled
+                                    viewModel.uiState.value
+                                        .isSoundEnabled
                                 ) {
                                     soundManager.playSwap()
                                 }
@@ -204,7 +224,8 @@ class MainActivity : ComponentActivity() {
                             GameEvent.SPECIAL_EXPLOSION -> {
 
                                 if (
-                                    viewModel.uiState.value.isSoundEnabled
+                                    viewModel.uiState.value
+                                        .isSoundEnabled
                                 ) {
                                     soundManager.playExplosion()
                                 }
@@ -220,7 +241,8 @@ class MainActivity : ComponentActivity() {
                             GameEvent.LEVEL_UP -> {
 
                                 if (
-                                    viewModel.uiState.value.isSoundEnabled
+                                    viewModel.uiState.value
+                                        .isSoundEnabled
                                 ) {
                                     soundManager.playLevelUp()
                                 }
@@ -232,10 +254,6 @@ class MainActivity : ComponentActivity() {
                                     vibrationManager.vibrate(200)
                                 }
 
-                                /*
-                                 * Interstitial test ad.
-                                 * Keep this as test ad while developing.
-                                 */
                                 adManager.showInterstitial(
                                     this@MainActivity
                                 ) {}
@@ -243,11 +261,6 @@ class MainActivity : ComponentActivity() {
 
                             GameEvent.REQUEST_REWARDED_AD -> {
 
-                                /*
-                                 * Rewarded test ad.
-                                 * After the complete ad the player
-                                 * receives 5 extra moves.
-                                 */
                                 adManager.showRewarded(
                                     this@MainActivity
                                 ) {
@@ -282,7 +295,6 @@ class MainActivity : ComponentActivity() {
                             }
 
                             GameEvent.GAME_OVER -> Unit
-
                         }
                     }
                 }
