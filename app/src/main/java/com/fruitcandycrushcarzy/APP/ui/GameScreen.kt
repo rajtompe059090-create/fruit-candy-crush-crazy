@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -45,166 +47,204 @@ fun GameScreen(
             .background(Color(0xFF101820))
     ) {
 
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
-            Text(
-                text = "🍓 Fruit Candy Crush 🍬",
-                color = Color.White,
-                fontSize = 26.sp,
-                modifier = Modifier.padding(top = 12.dp)
-            )
+            item {
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-
-                InfoBox(
-                    title = "LEVEL",
-                    value = state.level.toString()
+                Text(
+                    text = "🍓 Fruit Candy Crush 🍬",
+                    color = Color.White,
+                    fontSize = 26.sp,
+                    modifier = Modifier.padding(top = 12.dp)
                 )
 
-                InfoBox(
-                    title = "SCORE",
-                    value = state.score.toString()
-                )
+                Spacer(modifier = Modifier.height(12.dp))
 
-                InfoBox(
-                    title = "MOVES",
-                    value = state.movesLeft.toString()
-                )
-
-                InfoBox(
-                    title = "TIME",
-                    value = state.timeLeftSeconds.toString()
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-
-                Column(
-                    modifier = Modifier.padding(12.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
 
-                    Text(
-                        text = "Target: ${state.targetScore}",
-                        fontSize = 18.sp
-                    )
+                    InfoBox("LEVEL", state.level.toString())
+                    InfoBox("SCORE", state.score.toString())
+                    InfoBox("MOVES", state.movesLeft.toString())
+                    InfoBox("TIME", state.timeLeftSeconds.toString())
+                }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                    GameBoard(
-                        grid = state.grid,
-                        selectedPosition = state.selectedPosition,
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+
+                        Text(
+                            text = "Target: ${state.targetScore}",
+                            fontSize = 18.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        GameBoard(
+                            grid = state.grid,
+                            selectedPosition = state.selectedPosition,
+                            enabled =
+                                !state.isProcessing &&
+                                !state.isStarting &&
+                                !state.isLevelUp,
+                            onCellClick = {
+                                viewModel.onCellClick(it)
+                            },
+                            onSwipe = { position, direction ->
+                                viewModel.onSwipe(
+                                    position,
+                                    direction
+                                )
+                            }
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "💰 Wallet: ₹${state.walletBalance}",
+                    color = Color(0xFFFFD54F),
+                    fontSize = 22.sp
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Text(
+                    text = "🏆 High Score: ${state.highScore}",
+                    color = Color.White,
+                    fontSize = 18.sp
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.Center
+                ) {
+
+                    Button(
+                        onClick = {
+                            viewModel.shuffleBoard()
+                        },
                         enabled =
                             !state.isProcessing &&
-                            !state.isStarting &&
-                            !state.isLevelUp &&
-                            state.movesLeft > 0 &&
-                            state.timeLeftSeconds > 0,
-                        onCellClick = { position ->
-                            viewModel.onCellClick(position)
+                            !state.isLevelUp
+                    ) {
+                        Text("🔀 Shuffle")
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Button(
+                        onClick = {
+                            viewModel.requestRewardedAd()
                         },
-                        onSwipe = { position, direction ->
-                            viewModel.onSwipe(
-                                position,
-                                direction
-                            )
-                        }
+                        enabled =
+                            !state.isProcessing &&
+                            !state.isLevelUp
+                    ) {
+                        Text("🎁 Get Moves")
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Button(
+                    onClick = {
+                        viewModel.resetGame()
+                    }
+                ) {
+                    Text("🔄 New Game")
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                Text(
+                    text = "Earnings per level",
+                    color = Color.White,
+                    fontSize = 18.sp
+                )
+
+                Spacer(modifier = Modifier.height(5.dp))
+
+                Text(
+                    text =
+                        "Level 1-50  → ₹2\n" +
+                        "Level 51-100 → ₹3\n" +
+                        "Level 101-150 → ₹5\n" +
+                        "Level 151-200 → ₹10\n" +
+                        "Level 201+ → ₹15",
+                    color = Color.LightGray,
+                    fontSize = 15.sp
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Text(
+                    text = "Recent Transactions",
+                    color = Color.White,
+                    fontSize = 20.sp
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                if (state.transactions.isEmpty()) {
+
+                    Text(
+                        text = "No transactions yet",
+                        color = Color.LightGray,
+                        fontSize = 14.sp
                     )
+
+                } else {
+
+                    state.transactions
+                        .take(10)
+                        .forEach { transaction ->
+
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 3.dp)
+                            ) {
+
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(10.dp),
+                                    horizontalArrangement =
+                                        Arrangement.SpaceBetween
+                                ) {
+
+                                    Text(
+                                        text = transaction.description
+                                    )
+
+                                    Text(
+                                        text = "+₹${transaction.amount}"
+                                    )
+                                }
+                            }
+                        }
                 }
+
+                Spacer(modifier = Modifier.height(20.dp))
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = "💰 Wallet: ₹${state.walletBalance}",
-                color = Color(0xFFFFD54F),
-                fontSize = 22.sp
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = "🏆 High Score: ${state.highScore}",
-                color = Color.White,
-                fontSize = 18.sp
-            )
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            Row(
-                horizontalArrangement = Arrangement.Center
-            ) {
-
-                Button(
-                    onClick = {
-                        viewModel.shuffleBoard()
-                    },
-                    enabled =
-                        !state.isProcessing &&
-                        !state.isLevelUp
-                ) {
-                    Text("🔀 Shuffle")
-                }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                Button(
-                    onClick = {
-                        viewModel.requestRewardedAd()
-                    },
-                    enabled =
-                        !state.isProcessing &&
-                        !state.isLevelUp
-                ) {
-                    Text("🎁 Get Moves")
-                }
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Button(
-                onClick = {
-                    viewModel.resetGame()
-                }
-            ) {
-                Text("🔄 New Game")
-            }
-
-            Spacer(modifier = Modifier.height(18.dp))
-
-            Text(
-                text = "Earnings per level",
-                color = Color.White,
-                fontSize = 18.sp
-            )
-
-            Spacer(modifier = Modifier.height(5.dp))
-
-            Text(
-                text =
-                    "Level 1-50 → ₹2\n" +
-                    "Level 51-100 → ₹3\n" +
-                    "Level 101-150 → ₹5\n" +
-                    "Level 151-200 → ₹10\n" +
-                    "Level 201+ → ₹15",
-                color = Color.LightGray,
-                fontSize = 15.sp
-            )
         }
 
         if (state.isStarting) {
@@ -234,8 +274,7 @@ fun GameScreen(
             ) {
 
                 Column(
-                    horizontalAlignment =
-                        Alignment.CenterHorizontally
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
 
                     Text(
@@ -244,13 +283,10 @@ fun GameScreen(
                         fontSize = 32.sp
                     )
 
-                    Spacer(
-                        modifier = Modifier.height(12.dp)
-                    )
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
-                        text =
-                            "Next Level: ${state.level + 1}",
+                        text = "Next Level: ${state.level + 1}",
                         color = Color(0xFFFFD54F),
                         fontSize = 22.sp
                     )
@@ -278,10 +314,8 @@ private fun InfoBox(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(6.dp),
-            horizontalAlignment =
-                Alignment.CenterHorizontally,
-            verticalArrangement =
-                Arrangement.Center
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
 
             Text(
@@ -321,8 +355,7 @@ private fun GameBoard(
 
                 fruits.forEachIndexed { col, fruit ->
 
-                    val position =
-                        Position(row, col)
+                    val position = Position(row, col)
 
                     FruitCell(
                         fruit = fruit,
@@ -354,22 +387,50 @@ private fun FruitCell(
     onSwipe: (DragDirection) -> Unit
 ) {
 
-    val fruitText = when (fruit?.type) {
+    val fruitColor = when (fruit?.type) {
 
-        FruitType.APPLE -> "🍎"
-        FruitType.BANANA -> "🍌"
-        FruitType.GRAPE -> "🍇"
-        FruitType.ORANGE -> "🍊"
-        FruitType.STRAWBERRY -> "🍓"
+        FruitType.APPLE ->
+            Color(0xFFE53935)
 
-        null -> " "
+        FruitType.BANANA ->
+            Color(0xFFFFD600)
 
-        else -> "🍬"
+        FruitType.GRAPE ->
+            Color(0xFF8E24AA)
+
+        FruitType.ORANGE ->
+            Color(0xFFFB8C00)
+
+        FruitType.STRAWBERRY ->
+            Color(0xFFD81B60)
+
+        FruitType.WATERMELON ->
+            Color(0xFF43A047)
+
+        null ->
+            Color(0xFF455A64)
+
+        else ->
+            Color(0xFF00ACC1)
+    }
+
+    val fruitSymbol = when (fruit?.type) {
+
+        FruitType.APPLE -> "A"
+        FruitType.BANANA -> "B"
+        FruitType.GRAPE -> "G"
+        FruitType.ORANGE -> "O"
+        FruitType.STRAWBERRY -> "S"
+        FruitType.WATERMELON -> "W"
+
+        null -> ""
+
+        else -> "C"
     }
 
     Box(
         modifier = Modifier
-            .size(48.dp)
+            .size(52.dp)
             .padding(2.dp)
             .background(
                 if (selected) {
@@ -377,62 +438,27 @@ private fun FruitCell(
                 } else {
                     Color(0xFF37474F)
                 },
-                RoundedCornerShape(8.dp)
+                RoundedCornerShape(10.dp)
             )
             .pointerInput(enabled) {
 
                 if (enabled) {
 
                     detectDragGestures(
+                        onDragStart = {
+                            // Start of swipe
+                        },
 
-                        onDragStart = { },
+                        onDrag = { _, _ ->
+                            // Movement handled on end
+                        },
 
-                        onDragEnd = { },
+                        onDragEnd = {
+                            // Swipe detection is handled below
+                        },
 
-                        onDragCancel = { },
-
-                        onDrag = { change, dragAmount ->
-
-                            change.consume()
-
-                            val dx = dragAmount.x
-                            val dy = dragAmount.y
-
-                            if (
-                                abs(dx) > abs(dy) &&
-                                abs(dx) > 10
-                            ) {
-
-                                if (dx > 0) {
-
-                                    onSwipe(
-                                        DragDirection.RIGHT
-                                    )
-
-                                } else {
-
-                                    onSwipe(
-                                        DragDirection.LEFT
-                                    )
-                                }
-
-                            } else if (
-                                abs(dy) > 10
-                            ) {
-
-                                if (dy > 0) {
-
-                                    onSwipe(
-                                        DragDirection.DOWN
-                                    )
-
-                                } else {
-
-                                    onSwipe(
-                                        DragDirection.UP
-                                    )
-                                }
-                            }
+                        onDragCancel = {
+                            // Nothing
                         }
                     )
                 }
@@ -443,13 +469,14 @@ private fun FruitCell(
         Button(
             onClick = onClick,
             enabled = enabled,
-            modifier = Modifier.fillMaxSize(),
-            shape = RoundedCornerShape(8.dp)
+            modifier = Modifier
+                .size(46.dp),
+            shape = CircleShape
         ) {
 
             Text(
-                text = fruitText,
-                fontSize = 22.sp
+                text = fruitSymbol,
+                fontSize = 20.sp
             )
         }
     }
