@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -34,9 +35,11 @@ import com.fruitcandycrushcarzy.APP.game.model.FruitType
 import com.fruitcandycrushcarzy.APP.game.model.Position
 import com.fruitcandycrushcarzy.APP.game.viewmodel.DragDirection
 import com.fruitcandycrushcarzy.APP.game.viewmodel.GameViewModel
+import com.google.android.gms.ads.AdListener
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
+import com.google.android.gms.ads.LoadAdError
 import kotlin.math.abs
 
 @Composable
@@ -58,7 +61,7 @@ fun GameScreen(
                     start = 8.dp,
                     top = 8.dp,
                     end = 8.dp,
-                    bottom = 58.dp
+                    bottom = 60.dp
                 ),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -177,39 +180,76 @@ fun GameScreen(
         }
 
         /*
+         * =====================================================
          * BANNER AD
-         * Your real AdMob Banner Ad Unit ID
+         * =====================================================
          */
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(52.dp)
+                .height(60.dp)
                 .align(Alignment.BottomCenter)
                 .background(Color.Black),
             contentAlignment = Alignment.Center
         ) {
 
+            val bannerAd = remember {
+
+                AdView(
+                    androidx.compose.ui.platform.LocalContext
+                        .current
+                ).apply {
+
+                    setAdSize(AdSize.BANNER)
+
+                    adUnitId =
+                        "ca-app-pub-6146868530948467/2054244812"
+
+                    adListener =
+                        object : AdListener() {
+
+                            override fun onAdLoaded() {
+
+                                android.util.Log.d(
+                                    "ADMOB",
+                                    "BANNER LOADED SUCCESSFULLY"
+                                )
+                            }
+
+                            override fun onAdFailedToLoad(
+                                error: LoadAdError
+                            ) {
+
+                                android.util.Log.e(
+                                    "ADMOB",
+                                    "BANNER FAILED: ${error.code} ${error.message}"
+                                )
+                            }
+                        }
+
+                    loadAd(
+                        AdRequest.Builder().build()
+                    )
+                }
+            }
+
             AndroidView(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(50.dp),
+                    .height(60.dp),
 
-                factory = { context ->
-
-                    AdView(context).apply {
-
-                        setAdSize(AdSize.BANNER)
-
-                        adUnitId =
-                            "ca-app-pub-6146868530948467/2054244812"
-
-                        loadAd(
-                            AdRequest.Builder().build()
-                        )
-                    }
+                factory = {
+                    bannerAd
                 }
             )
         }
+
+        /*
+         * =====================================================
+         * STARTING SCREEN
+         * =====================================================
+         */
 
         if (state.isStarting) {
 
@@ -228,6 +268,12 @@ fun GameScreen(
             }
         }
 
+        /*
+         * =====================================================
+         * LEVEL UP
+         * =====================================================
+         */
+
         if (state.isLevelUp) {
 
             Box(
@@ -238,7 +284,8 @@ fun GameScreen(
             ) {
 
                 Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    horizontalAlignment =
+                        Alignment.CenterHorizontally
                 ) {
 
                     Text(
@@ -252,7 +299,8 @@ fun GameScreen(
                     )
 
                     Text(
-                        text = "Next Level: ${state.level + 1}",
+                        text =
+                            "Next Level: ${state.level + 1}",
                         color = Color(0xFFFFD54F),
                         fontSize = 22.sp
                     )
@@ -260,21 +308,36 @@ fun GameScreen(
             }
         }
 
+        /*
+         * =====================================================
+         * SETTINGS
+         * =====================================================
+         */
+
         if (state.showSettings) {
 
             SettingsPanel(
-                soundEnabled = state.isSoundEnabled,
-                musicEnabled = state.isMusicEnabled,
-                vibrationEnabled = state.isVibrationEnabled,
+                soundEnabled =
+                    state.isSoundEnabled,
+
+                musicEnabled =
+                    state.isMusicEnabled,
+
+                vibrationEnabled =
+                    state.isVibrationEnabled,
+
                 onSound = {
                     viewModel.toggleSound()
                 },
+
                 onMusic = {
                     viewModel.toggleMusic()
                 },
+
                 onVibration = {
                     viewModel.toggleVibration()
                 },
+
                 onClose = {
                     viewModel.toggleSettings()
                 }
@@ -298,8 +361,10 @@ private fun SmallInfo(
 
         Column(
             modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            horizontalAlignment =
+                Alignment.CenterHorizontally,
+            verticalArrangement =
+                Arrangement.Center
         ) {
 
             Text(
@@ -343,8 +408,11 @@ private fun GameBoard(
                         selected =
                             selectedPosition ==
                             Position(row, col),
+
                         enabled = enabled,
+
                         onSwipe = { direction ->
+
                             onSwipe(
                                 Position(row, col),
                                 direction
@@ -465,6 +533,7 @@ private fun FruitCell(
                     )
                 }
             },
+
         contentAlignment = Alignment.Center
     ) {
 
@@ -561,8 +630,10 @@ private fun SettingRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 10.dp),
+
         horizontalArrangement =
             Arrangement.SpaceBetween,
+
         verticalAlignment =
             Alignment.CenterVertically
     ) {
