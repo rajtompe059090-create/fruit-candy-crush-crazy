@@ -21,7 +21,13 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 enum class GameEvent {
-    MATCH, SWAP, GAME_OVER, LEVEL_UP, SPECIAL_EXPLOSION, REQUEST_REWARDED_AD, RATE_APP
+    MATCH,
+    SWAP,
+    GAME_OVER,
+    LEVEL_UP,
+    SPECIAL_EXPLOSION,
+    REQUEST_REWARDED_AD,
+    RATE_APP
 }
 
 enum class DragDirection {
@@ -29,77 +35,126 @@ enum class DragDirection {
 }
 
 data class GameState(
-    val grid: Array<Array<Fruit?>> = Array(GameLogic.GRID_SIZE) { arrayOfNulls<Fruit>(GameLogic.GRID_SIZE) },
+    val grid: Array<Array<Fruit?>> =
+        Array(GameLogic.GRID_SIZE) {
+            arrayOfNulls<Fruit>(GameLogic.GRID_SIZE)
+        },
+
     val score: Int = 0,
     val walletBalance: Int = 0,
     val highScore: Int = 0,
-    val movesLeft: Int = 30,
+
+    // Faster gameplay
+    val movesLeft: Int = 20,
+
     val selectedPosition: Position? = null,
     val isProcessing: Boolean = false,
+
     val level: Int = 1,
-    val timeLeftSeconds: Int = 90,
-    val targetScore: Int = 1000,
+
+    // Shorter level
+    val timeLeftSeconds: Int = 60,
+
+    // Easier first level
+    val targetScore: Int = 300,
+
     val lastComboCount: Int = 0,
     val hasMoves: Boolean = true,
     val isLevelUp: Boolean = false,
+
     val isSoundEnabled: Boolean = true,
     val isMusicEnabled: Boolean = true,
     val isVibrationEnabled: Boolean = true,
+
     val showSettings: Boolean = false,
     val isStarting: Boolean = true,
     val showRateDialog: Boolean = false
 )
 
-class GameViewModel(private val scoreRepository: ScoreRepository) : ViewModel() {
+class GameViewModel(
+    private val scoreRepository: ScoreRepository
+) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(GameState())
-    val uiState: StateFlow<GameState> = _uiState.asStateFlow()
+    private val _uiState =
+        MutableStateFlow(GameState())
 
-    private val _events = MutableSharedFlow<GameEvent>()
-    val events: SharedFlow<GameEvent> = _events.asSharedFlow()
+    val uiState: StateFlow<GameState> =
+        _uiState.asStateFlow()
+
+    private val _events =
+        MutableSharedFlow<GameEvent>()
+
+    val events: SharedFlow<GameEvent> =
+        _events.asSharedFlow()
 
     private var timerJob: Job? = null
 
     init {
-        val initialGrid = GameLogic.createInitialGrid()
-        _uiState.update { it.copy(grid = initialGrid) }
+
+        val initialGrid =
+            GameLogic.createInitialGrid()
+
+        _uiState.update {
+            it.copy(
+                grid = initialGrid
+            )
+        }
 
         viewModelScope.launch {
             scoreRepository.highScoreFlow.collectLatest { high ->
-                _uiState.update { it.copy(highScore = high) }
+                _uiState.update {
+                    it.copy(highScore = high)
+                }
             }
         }
 
-        // Load saved wallet balance
         viewModelScope.launch {
             scoreRepository.walletBalanceFlow.collectLatest { balance ->
-                _uiState.update { it.copy(walletBalance = balance) }
+                _uiState.update {
+                    it.copy(walletBalance = balance)
+                }
             }
         }
 
         viewModelScope.launch {
             scoreRepository.soundEnabledFlow.collectLatest { enabled ->
-                _uiState.update { it.copy(isSoundEnabled = enabled) }
+                _uiState.update {
+                    it.copy(isSoundEnabled = enabled)
+                }
             }
         }
 
         viewModelScope.launch {
             scoreRepository.musicEnabledFlow.collectLatest { enabled ->
-                _uiState.update { it.copy(isMusicEnabled = enabled) }
+                _uiState.update {
+                    it.copy(isMusicEnabled = enabled)
+                }
             }
         }
 
         viewModelScope.launch {
             scoreRepository.vibrationEnabledFlow.collectLatest { enabled ->
-                _uiState.update { it.copy(isVibrationEnabled = enabled) }
+                _uiState.update {
+                    it.copy(isVibrationEnabled = enabled)
+                }
             }
         }
 
         viewModelScope.launch {
             scoreRepository.gamesPlayedFlow.collectLatest { games ->
+
                 scoreRepository.hasRatedFlow.collectLatest { hasRated ->
-                    if (!hasRated && games >= 3 && games % 5 == 0) {
-                        _uiState.update { it.copy(showRateDialog = true) }
+
+                    if (
+                        !hasRated &&
+                        games >= 3 &&
+                        games % 5 == 0
+                    ) {
+                        _uiState.update {
+                            it.copy(
+                                showRateDialog = true
+                            )
+                        }
                     }
                 }
             }
@@ -109,20 +164,37 @@ class GameViewModel(private val scoreRepository: ScoreRepository) : ViewModel() 
     }
 
     private fun startGameSequence() {
+
         viewModelScope.launch {
-            _uiState.update { it.copy(isStarting = true) }
-            delay(2500)
-            _uiState.update { it.copy(isStarting = false) }
+
+            _uiState.update {
+                it.copy(
+                    isStarting = true
+                )
+            }
+
+            // Short start screen
+            delay(1000)
+
+            _uiState.update {
+                it.copy(
+                    isStarting = false
+                )
+            }
+
             startTimer()
         }
     }
 
     fun resetGame() {
+
         timerJob?.cancel()
 
-        val initialGrid = GameLogic.createInitialGrid()
+        val initialGrid =
+            GameLogic.createInitialGrid()
 
         _uiState.update {
+
             GameState(
                 grid = initialGrid,
                 highScore = it.highScore,
@@ -141,24 +213,34 @@ class GameViewModel(private val scoreRepository: ScoreRepository) : ViewModel() 
     }
 
     private fun startTimer() {
+
         timerJob?.cancel()
 
         timerJob = viewModelScope.launch {
+
             while (
                 _uiState.value.timeLeftSeconds > 0 &&
                 _uiState.value.movesLeft > 0 &&
                 !_uiState.value.isLevelUp
             ) {
-                if (!_uiState.value.showSettings && !_uiState.value.isStarting) {
+
+                if (
+                    !_uiState.value.showSettings &&
+                    !_uiState.value.isStarting
+                ) {
+
                     delay(1000)
 
                     _uiState.update {
                         it.copy(
                             timeLeftSeconds =
-                                (it.timeLeftSeconds - 1).coerceAtLeast(0)
+                                (it.timeLeftSeconds - 1)
+                                    .coerceAtLeast(0)
                         )
                     }
+
                 } else {
+
                     delay(100)
                 }
             }
@@ -166,6 +248,7 @@ class GameViewModel(private val scoreRepository: ScoreRepository) : ViewModel() 
     }
 
     fun onCellClick(position: Position) {
+
         if (
             _uiState.value.isProcessing ||
             _uiState.value.isStarting ||
@@ -174,25 +257,49 @@ class GameViewModel(private val scoreRepository: ScoreRepository) : ViewModel() 
             _uiState.value.isLevelUp
         ) return
 
-        val selected = _uiState.value.selectedPosition
+        val selected =
+            _uiState.value.selectedPosition
 
         if (selected == null) {
+
             _uiState.update {
-                it.copy(selectedPosition = position)
+                it.copy(
+                    selectedPosition = position
+                )
             }
+
         } else {
-            if (GameLogic.isAdjacent(selected, position)) {
-                swapAndProcess(selected, position)
+
+            if (
+                GameLogic.isAdjacent(
+                    selected,
+                    position
+                )
+            ) {
+
+                swapAndProcess(
+                    selected,
+                    position
+                )
+
             } else {
+
                 _uiState.update {
-                    it.copy(selectedPosition = position)
+                    it.copy(
+                        selectedPosition = position
+                    )
                 }
             }
         }
     }
 
-    private fun swapAndProcess(p1: Position, p2: Position) {
+    private fun swapAndProcess(
+        p1: Position,
+        p2: Position
+    ) {
+
         viewModelScope.launch {
+
             _uiState.update {
                 it.copy(
                     isProcessing = true,
@@ -200,39 +307,67 @@ class GameViewModel(private val scoreRepository: ScoreRepository) : ViewModel() 
                 )
             }
 
-            _events.emit(GameEvent.SWAP)
+            _events.emit(
+                GameEvent.SWAP
+            )
 
-            val currentGrid = copyGrid(_uiState.value.grid)
+            val currentGrid =
+                copyGrid(
+                    _uiState.value.grid
+                )
 
-            val temp = currentGrid[p1.row][p1.col]
-            currentGrid[p1.row][p1.col] = currentGrid[p2.row][p2.col]
-            currentGrid[p2.row][p2.col] = temp
+            val temp =
+                currentGrid[p1.row][p1.col]
+
+            currentGrid[p1.row][p1.col] =
+                currentGrid[p2.row][p2.col]
+
+            currentGrid[p2.row][p2.col] =
+                temp
 
             _uiState.update {
-                it.copy(grid = currentGrid)
+                it.copy(
+                    grid = currentGrid
+                )
             }
 
-            delay(300)
+            // Faster swap
+            delay(120)
 
-            val matches = GameLogic.findMatchGroups(currentGrid)
+            val matches =
+                GameLogic.findMatchGroups(
+                    currentGrid
+                )
 
             if (matches.isEmpty()) {
 
-                val revertGrid = copyGrid(_uiState.value.grid)
+                val revertGrid =
+                    copyGrid(
+                        _uiState.value.grid
+                    )
 
-                val tempBack = revertGrid[p1.row][p1.col]
-                revertGrid[p1.row][p1.col] = revertGrid[p2.row][p2.col]
-                revertGrid[p2.row][p2.col] = tempBack
+                val tempBack =
+                    revertGrid[p1.row][p1.col]
+
+                revertGrid[p1.row][p1.col] =
+                    revertGrid[p2.row][p2.col]
+
+                revertGrid[p2.row][p2.col] =
+                    tempBack
 
                 _uiState.update {
-                    it.copy(grid = revertGrid)
+                    it.copy(
+                        grid = revertGrid
+                    )
                 }
 
             } else {
 
                 _uiState.update {
                     it.copy(
-                        movesLeft = it.movesLeft - 1
+                        movesLeft =
+                            (it.movesLeft - 1)
+                                .coerceAtLeast(0)
                     )
                 }
 
@@ -243,7 +378,9 @@ class GameViewModel(private val scoreRepository: ScoreRepository) : ViewModel() 
             }
 
             _uiState.update {
-                it.copy(isProcessing = false)
+                it.copy(
+                    isProcessing = false
+                )
             }
 
             checkMovesAvailable()
@@ -253,10 +390,14 @@ class GameViewModel(private val scoreRepository: ScoreRepository) : ViewModel() 
     private fun checkMovesAvailable() {
 
         val hasMoves =
-            GameLogic.hasAvailableMoves(_uiState.value.grid)
+            GameLogic.hasAvailableMoves(
+                _uiState.value.grid
+            )
 
         _uiState.update {
-            it.copy(hasMoves = hasMoves)
+            it.copy(
+                hasMoves = hasMoves
+            )
         }
 
         if (
@@ -264,12 +405,19 @@ class GameViewModel(private val scoreRepository: ScoreRepository) : ViewModel() 
             _uiState.value.movesLeft > 0 &&
             !_uiState.value.isProcessing
         ) {
+
             viewModelScope.launch {
 
-                delay(1000)
+                delay(400)
 
-                if (!GameLogic.hasAvailableMoves(_uiState.value.grid)) {
-                    shuffleBoard(isAuto = true)
+                if (
+                    !GameLogic.hasAvailableMoves(
+                        _uiState.value.grid
+                    )
+                ) {
+                    shuffleBoard(
+                        isAuto = true
+                    )
                 }
             }
         }
@@ -286,7 +434,9 @@ class GameViewModel(private val scoreRepository: ScoreRepository) : ViewModel() 
         do {
 
             val groups =
-                GameLogic.findMatchGroups(currentGrid)
+                GameLogic.findMatchGroups(
+                    currentGrid
+                )
 
             if (groups.isNotEmpty()) {
 
@@ -301,7 +451,11 @@ class GameViewModel(private val scoreRepository: ScoreRepository) : ViewModel() 
                         matchPositions
                     )
 
-                if (affectedPositions.size > matchPositions.size) {
+                if (
+                    affectedPositions.size >
+                    matchPositions.size
+                ) {
+
                     _events.emit(
                         GameEvent.SPECIAL_EXPLOSION
                     )
@@ -311,18 +465,28 @@ class GameViewModel(private val scoreRepository: ScoreRepository) : ViewModel() 
                     affectedPositions.size * 10
 
                 val comboBonus =
-                    (combo - 1) * 20
+                    (combo - 1) * 15
 
                 val specialBonus =
                     if (
                         affectedPositions.size >
                         matchPositions.size
-                    ) 100 else 0
+                    ) {
+                        50
+                    } else {
+                        0
+                    }
 
                 val points =
-                    (basePoints + comboBonus + specialBonus) * combo
+                    (
+                        basePoints +
+                        comboBonus +
+                        specialBonus
+                    ) * combo
 
-                _events.emit(GameEvent.MATCH)
+                _events.emit(
+                    GameEvent.MATCH
+                )
 
                 val specialFruitsToCreate =
                     mutableListOf<
@@ -347,6 +511,7 @@ class GameViewModel(private val scoreRepository: ScoreRepository) : ViewModel() 
 
                         val specialType =
                             when (group.size) {
+
                                 4 ->
                                     if (
                                         group[0].row ==
@@ -382,25 +547,38 @@ class GameViewModel(private val scoreRepository: ScoreRepository) : ViewModel() 
                 }
 
                 affectedPositions.forEach { pos ->
-                    currentGrid[pos.row][pos.col] = null
+
+                    currentGrid[
+                        pos.row
+                    ][
+                        pos.col
+                    ] = null
                 }
 
                 specialFruitsToCreate.forEach {
-                        (pos, type, special) ->
+                    (pos, type, special) ->
 
-                    currentGrid[pos.row][pos.col] =
-                        Fruit(type, special)
+                    currentGrid[
+                        pos.row
+                    ][
+                        pos.col
+                    ] = Fruit(
+                        type,
+                        special
+                    )
                 }
 
-                val currentScore =
-                    _uiState.value.score
-
                 val newScore =
-                    currentScore + points
+                    _uiState.value.score +
+                            points
 
                 _uiState.update {
+
                     it.copy(
-                        grid = copyGrid(currentGrid),
+                        grid =
+                            copyGrid(
+                                currentGrid
+                            ),
                         score = newScore,
                         lastComboCount = combo
                     )
@@ -410,37 +588,50 @@ class GameViewModel(private val scoreRepository: ScoreRepository) : ViewModel() 
                     newScore >
                     _uiState.value.highScore
                 ) {
+
                     scoreRepository.updateHighScore(
                         newScore
                     )
                 }
 
-                delay(400)
+                // Faster animation
+                delay(120)
 
-                GameLogic.applyGravity(currentGrid)
-
-                _uiState.update {
-                    it.copy(
-                        grid = copyGrid(currentGrid)
-                    )
-                }
-
-                delay(300)
-
-                GameLogic.refillGrid(currentGrid)
+                GameLogic.applyGravity(
+                    currentGrid
+                )
 
                 _uiState.update {
                     it.copy(
-                        grid = copyGrid(currentGrid)
+                        grid =
+                            copyGrid(
+                                currentGrid
+                            )
                     )
                 }
 
-                delay(300)
+                delay(100)
+
+                GameLogic.refillGrid(
+                    currentGrid
+                )
+
+                _uiState.update {
+                    it.copy(
+                        grid =
+                            copyGrid(
+                                currentGrid
+                            )
+                    )
+                }
+
+                delay(100)
             }
 
         } while (
-            GameLogic.findMatchGroups(currentGrid)
-                .isNotEmpty()
+            GameLogic.findMatchGroups(
+                currentGrid
+            ).isNotEmpty()
         )
 
         if (
@@ -451,7 +642,6 @@ class GameViewModel(private val scoreRepository: ScoreRepository) : ViewModel() 
         }
     }
 
-    // Level earning system
     private fun levelUp() {
 
         viewModelScope.launch {
@@ -461,14 +651,23 @@ class GameViewModel(private val scoreRepository: ScoreRepository) : ViewModel() 
 
             val earning =
                 when {
-                    completedLevel in 1..50 -> 2
-                    completedLevel in 51..100 -> 3
-                    completedLevel in 101..150 -> 5
-                    completedLevel in 151..200 -> 10
-                    else -> 15
+
+                    completedLevel in 1..50 ->
+                        2
+
+                    completedLevel in 51..100 ->
+                        3
+
+                    completedLevel in 101..150 ->
+                        5
+
+                    completedLevel in 151..200 ->
+                        10
+
+                    else ->
+                        15
                 }
 
-            // Save earning to wallet
             scoreRepository.addEarning(
                 earning
             )
@@ -483,19 +682,52 @@ class GameViewModel(private val scoreRepository: ScoreRepository) : ViewModel() 
                 )
             }
 
-            delay(2000)
+            // Short level-up screen
+            delay(1000)
 
             _uiState.update {
 
+                val nextLevel =
+                    completedLevel + 1
+
+                // Small target increase
+                val nextTarget =
+                    when {
+
+                        nextLevel <= 50 ->
+                            300 + (
+                                (nextLevel - 1) * 50
+                            )
+
+                        nextLevel <= 100 ->
+                            2800 + (
+                                (nextLevel - 50) * 75
+                            )
+
+                        nextLevel <= 150 ->
+                            6550 + (
+                                (nextLevel - 100) * 100
+                            )
+
+                        nextLevel <= 200 ->
+                            11550 + (
+                                (nextLevel - 150) * 125
+                            )
+
+                        else ->
+                            17800 + (
+                                (nextLevel - 200) * 150
+                            )
+                    }
+
                 it.copy(
-                    level = completedLevel + 1,
-                    targetScore =
-                        it.targetScore +
-                        (completedLevel + 1) * 1000,
-                    movesLeft =
-                        it.movesLeft + 10,
-                    timeLeftSeconds =
-                        it.timeLeftSeconds + 60,
+                    level = nextLevel,
+                    targetScore = nextTarget,
+
+                    // Keep game fast
+                    movesLeft = 20,
+                    timeLeftSeconds = 60,
+
                     isLevelUp = false
                 )
             }
@@ -517,8 +749,11 @@ class GameViewModel(private val scoreRepository: ScoreRepository) : ViewModel() 
             if (isAuto) {
                 0
             } else {
-                if (_uiState.value.hasMoves) 2
-                else 0
+                if (_uiState.value.hasMoves) {
+                    2
+                } else {
+                    0
+                }
             }
 
         if (
@@ -529,6 +764,7 @@ class GameViewModel(private val scoreRepository: ScoreRepository) : ViewModel() 
         viewModelScope.launch {
 
             _uiState.update {
+
                 it.copy(
                     isProcessing = true,
                     movesLeft =
@@ -540,13 +776,14 @@ class GameViewModel(private val scoreRepository: ScoreRepository) : ViewModel() 
                 GameLogic.createInitialGrid()
 
             _uiState.update {
+
                 it.copy(
                     grid = newGrid,
                     hasMoves = true
                 )
             }
 
-            delay(500)
+            delay(150)
 
             _uiState.update {
                 it.copy(
@@ -559,7 +796,9 @@ class GameViewModel(private val scoreRepository: ScoreRepository) : ViewModel() 
     }
 
     fun toggleSound() {
+
         viewModelScope.launch {
+
             scoreRepository.toggleSound(
                 !_uiState.value.isSoundEnabled
             )
@@ -567,7 +806,9 @@ class GameViewModel(private val scoreRepository: ScoreRepository) : ViewModel() 
     }
 
     fun toggleMusic() {
+
         viewModelScope.launch {
+
             scoreRepository.toggleMusic(
                 !_uiState.value.isMusicEnabled
             )
@@ -575,7 +816,9 @@ class GameViewModel(private val scoreRepository: ScoreRepository) : ViewModel() 
     }
 
     fun toggleVibration() {
+
         viewModelScope.launch {
+
             scoreRepository.toggleVibration(
                 !_uiState.value.isVibrationEnabled
             )
@@ -583,7 +826,9 @@ class GameViewModel(private val scoreRepository: ScoreRepository) : ViewModel() 
     }
 
     fun toggleSettings() {
+
         _uiState.update {
+
             it.copy(
                 showSettings =
                     !it.showSettings
@@ -592,7 +837,9 @@ class GameViewModel(private val scoreRepository: ScoreRepository) : ViewModel() 
     }
 
     fun requestRewardedAd() {
+
         viewModelScope.launch {
+
             _events.emit(
                 GameEvent.REQUEST_REWARDED_AD
             )
@@ -604,6 +851,7 @@ class GameViewModel(private val scoreRepository: ScoreRepository) : ViewModel() 
     ) {
 
         _uiState.update {
+
             it.copy(
                 movesLeft =
                     it.movesLeft + count
@@ -617,9 +865,12 @@ class GameViewModel(private val scoreRepository: ScoreRepository) : ViewModel() 
 
         viewModelScope.launch {
 
-            scoreRepository.setHasRated(true)
+            scoreRepository.setHasRated(
+                true
+            )
 
             _uiState.update {
+
                 it.copy(
                     showRateDialog = false
                 )
@@ -634,6 +885,7 @@ class GameViewModel(private val scoreRepository: ScoreRepository) : ViewModel() 
     fun onDismissRateDialog() {
 
         _uiState.update {
+
             it.copy(
                 showRateDialog = false
             )
@@ -710,5 +962,12 @@ class GameViewModel(private val scoreRepository: ScoreRepository) : ViewModel() 
                 original[r][c]
             }
         }
+    }
+
+    override fun onCleared() {
+
+        timerJob?.cancel()
+
+        super.onCleared()
     }
 }
