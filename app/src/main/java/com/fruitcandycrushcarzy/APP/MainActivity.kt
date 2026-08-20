@@ -27,13 +27,16 @@ import com.fruitcandycrushcarzy.APP.game.viewmodel.GameViewModel
 import com.fruitcandycrushcarzy.APP.ui.GameScreen
 import com.fruitcandycrushcarzy.APP.ui.theme.FRUITCANDYCRUSHCARZYTheme
 import com.google.android.gms.ads.MobileAds
+import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        MobileAds.initialize(this) {}
+        MobileAds.initialize(this) {
+            // AdMob initialized
+        }
 
         enableEdgeToEdge()
 
@@ -55,7 +58,9 @@ class MainActivity : ComponentActivity() {
                             modelClass: Class<T>
                         ): T {
                             @Suppress("UNCHECKED_CAST")
-                            return GameViewModel(scoreRepository) as T
+                            return GameViewModel(
+                                scoreRepository
+                            ) as T
                         }
                     }
                 )
@@ -74,7 +79,12 @@ class MainActivity : ComponentActivity() {
                     AdManager(context)
                 }
 
+                /*
+                 * MUSIC
+                 */
+
                 val mediaPlayer = remember {
+
                     android.media.MediaPlayer.create(
                         context,
                         R.raw.xtremefreddy_loop1
@@ -118,14 +128,20 @@ class MainActivity : ComponentActivity() {
                             }
                         }
 
-                    lifecycleOwner.lifecycle.addObserver(observer)
+                    lifecycleOwner.lifecycle.addObserver(
+                        observer
+                    )
 
                     onDispose {
-                        lifecycleOwner.lifecycle.removeObserver(observer)
+                        lifecycleOwner.lifecycle.removeObserver(
+                            observer
+                        )
                     }
                 }
 
-                LaunchedEffect(uiState.isMusicEnabled) {
+                LaunchedEffect(
+                    uiState.isMusicEnabled
+                ) {
 
                     if (uiState.isMusicEnabled) {
 
@@ -147,6 +163,10 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                /*
+                 * CLEANUP
+                 */
+
                 DisposableEffect(Unit) {
 
                     onDispose {
@@ -164,21 +184,21 @@ class MainActivity : ComponentActivity() {
                 /*
                  * APP OPEN AD
                  *
-                 * AppOpen ID:
+                 * AdManager automatically loads:
+                 *
                  * ca-app-pub-6146868530948467/3515500297
                  *
-                 * AdManager ke andar App Open ad
-                 * already preload hota hai.
+                 * We wait a little and then try to show it.
                  */
 
                 LaunchedEffect(Unit) {
 
-                    kotlinx.coroutines.delay(2500)
+                    delay(4000)
 
                     adManager.showAppOpenAd(
                         this@MainActivity
                     ) {
-                        // Ad close hone ke baad game continue.
+                        // Continue game
                     }
                 }
 
@@ -205,7 +225,9 @@ class MainActivity : ComponentActivity() {
                                     viewModel.uiState.value
                                         .isVibrationEnabled
                                 ) {
-                                    vibrationManager.vibrate(50)
+                                    vibrationManager.vibrate(
+                                        50
+                                    )
                                 }
                             }
 
@@ -232,7 +254,9 @@ class MainActivity : ComponentActivity() {
                                     viewModel.uiState.value
                                         .isVibrationEnabled
                                 ) {
-                                    vibrationManager.vibrate(100)
+                                    vibrationManager.vibrate(
+                                        100
+                                    )
                                 }
                             }
 
@@ -249,7 +273,9 @@ class MainActivity : ComponentActivity() {
                                     viewModel.uiState.value
                                         .isVibrationEnabled
                                 ) {
-                                    vibrationManager.vibrate(200)
+                                    vibrationManager.vibrate(
+                                        200
+                                    )
                                 }
 
                                 adManager.showInterstitial(
@@ -262,7 +288,9 @@ class MainActivity : ComponentActivity() {
                                 adManager.showRewarded(
                                     this@MainActivity
                                 ) {
-                                    viewModel.grantRewardMoves(5)
+                                    viewModel.grantRewardMoves(
+                                        5
+                                    )
                                 }
                             }
 
@@ -296,6 +324,12 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
+
+                /*
+                 * GAME SCREEN
+                 *
+                 * Banner Ad is inside GameScreen.kt
+                 */
 
                 GameScreen(
                     viewModel = viewModel
