@@ -22,7 +22,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -35,11 +34,9 @@ import com.fruitcandycrushcarzy.APP.game.model.FruitType
 import com.fruitcandycrushcarzy.APP.game.model.Position
 import com.fruitcandycrushcarzy.APP.game.viewmodel.DragDirection
 import com.fruitcandycrushcarzy.APP.game.viewmodel.GameViewModel
-import com.google.android.gms.ads.AdListener
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
-import com.google.android.gms.ads.LoadAdError
 import kotlin.math.abs
 
 @Composable
@@ -87,19 +84,39 @@ fun GameScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(5.dp))
+            Spacer(
+                modifier = Modifier.height(5.dp)
+            )
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                SmallInfo("LVL", state.level.toString())
-                SmallInfo("SCORE", state.score.toString())
-                SmallInfo("MOVES", state.movesLeft.toString())
-                SmallInfo("TIME", state.timeLeftSeconds.toString())
+
+                SmallInfo(
+                    title = "LVL",
+                    value = state.level.toString()
+                )
+
+                SmallInfo(
+                    title = "SCORE",
+                    value = state.score.toString()
+                )
+
+                SmallInfo(
+                    title = "MOVES",
+                    value = state.movesLeft.toString()
+                )
+
+                SmallInfo(
+                    title = "TIME",
+                    value = state.timeLeftSeconds.toString()
+                )
             }
 
-            Spacer(modifier = Modifier.height(5.dp))
+            Spacer(
+                modifier = Modifier.height(5.dp)
+            )
 
             Text(
                 text = "TARGET ${state.targetScore}",
@@ -107,7 +124,9 @@ fun GameScreen(
                 fontSize = 14.sp
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(
+                modifier = Modifier.height(4.dp)
+            )
 
             GameBoard(
                 grid = state.grid,
@@ -117,11 +136,16 @@ fun GameScreen(
                     !state.isStarting &&
                     !state.isLevelUp,
                 onSwipe = { position, direction ->
-                    viewModel.onSwipe(position, direction)
+                    viewModel.onSwipe(
+                        position,
+                        direction
+                    )
                 }
             )
 
-            Spacer(modifier = Modifier.height(5.dp))
+            Spacer(
+                modifier = Modifier.height(5.dp)
+            )
 
             Text(
                 text = "💰 ₹${state.walletBalance}",
@@ -129,7 +153,9 @@ fun GameScreen(
                 fontSize = 20.sp
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(
+                modifier = Modifier.height(4.dp)
+            )
 
             Row(
                 horizontalArrangement = Arrangement.Center
@@ -146,7 +172,9 @@ fun GameScreen(
                     Text("🔀")
                 }
 
-                Spacer(modifier = Modifier.width(5.dp))
+                Spacer(
+                    modifier = Modifier.width(5.dp)
+                )
 
                 Button(
                     onClick = {
@@ -159,7 +187,9 @@ fun GameScreen(
                     Text("🎁 +5")
                 }
 
-                Spacer(modifier = Modifier.width(5.dp))
+                Spacer(
+                    modifier = Modifier.width(5.dp)
+                )
 
                 Button(
                     onClick = {
@@ -170,7 +200,9 @@ fun GameScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(3.dp))
+            Spacer(
+                modifier = Modifier.height(3.dp)
+            )
 
             Text(
                 text = "👉 Swipe a fruit",
@@ -181,7 +213,7 @@ fun GameScreen(
 
         /*
          * =====================================================
-         * BANNER AD
+         * BANNER ADMOB
          * =====================================================
          */
 
@@ -194,53 +226,36 @@ fun GameScreen(
             contentAlignment = Alignment.Center
         ) {
 
-            val bannerAd = remember {
-
-                AdView(
-                    androidx.compose.ui.platform.LocalContext
-                        .current
-                ).apply {
-
-                    setAdSize(AdSize.BANNER)
-
-                    adUnitId =
-                        "ca-app-pub-6146868530948467/2054244812"
-
-                    adListener =
-                        object : AdListener() {
-
-                            override fun onAdLoaded() {
-
-                                android.util.Log.d(
-                                    "ADMOB",
-                                    "BANNER LOADED SUCCESSFULLY"
-                                )
-                            }
-
-                            override fun onAdFailedToLoad(
-                                error: LoadAdError
-                            ) {
-
-                                android.util.Log.e(
-                                    "ADMOB",
-                                    "BANNER FAILED: ${error.code} ${error.message}"
-                                )
-                            }
-                        }
-
-                    loadAd(
-                        AdRequest.Builder().build()
-                    )
-                }
-            }
-
             AndroidView(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(60.dp),
+                    .height(50.dp),
 
-                factory = {
-                    bannerAd
+                factory = { context ->
+
+                    AdView(context).also { adView ->
+
+                        adView.setAdSize(
+                            AdSize.BANNER
+                        )
+
+                        adView.adUnitId =
+                            "ca-app-pub-6146868530948467/2054244812"
+
+                        adView.loadAd(
+                            AdRequest.Builder().build()
+                        )
+                    }
+                },
+
+                update = { adView ->
+
+                    if (adView.adSize == null) {
+
+                        adView.setAdSize(
+                            AdSize.BANNER
+                        )
+                    }
                 }
             )
         }
@@ -256,7 +271,9 @@ fun GameScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0xDD000000)),
+                    .background(
+                        Color(0xDD000000)
+                    ),
                 contentAlignment = Alignment.Center
             ) {
 
@@ -279,7 +296,9 @@ fun GameScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0xDD000000)),
+                    .background(
+                        Color(0xDD000000)
+                    ),
                 contentAlignment = Alignment.Center
             ) {
 
@@ -301,7 +320,8 @@ fun GameScreen(
                     Text(
                         text =
                             "Next Level: ${state.level + 1}",
-                        color = Color(0xFFFFD54F),
+                        color =
+                            Color(0xFFFFD54F),
                         fontSize = 22.sp
                     )
                 }
@@ -346,6 +366,13 @@ fun GameScreen(
     }
 }
 
+
+/*
+ * =========================================================
+ * SMALL INFO CARD
+ * =========================================================
+ */
+
 @Composable
 private fun SmallInfo(
     title: String,
@@ -356,13 +383,16 @@ private fun SmallInfo(
         modifier = Modifier
             .width(78.dp)
             .height(48.dp),
+
         shape = RoundedCornerShape(10.dp)
     ) {
 
         Column(
             modifier = Modifier.fillMaxSize(),
+
             horizontalAlignment =
                 Alignment.CenterHorizontally,
+
             verticalArrangement =
                 Arrangement.Center
         ) {
@@ -380,12 +410,22 @@ private fun SmallInfo(
     }
 }
 
+
+/*
+ * =========================================================
+ * GAME BOARD
+ * =========================================================
+ */
+
 @Composable
 private fun GameBoard(
     grid: Array<Array<Fruit?>>,
     selectedPosition: Position?,
     enabled: Boolean,
-    onSwipe: (Position, DragDirection) -> Unit
+    onSwipe: (
+        Position,
+        DragDirection
+    ) -> Unit
 ) {
 
     Column(
@@ -405,16 +445,20 @@ private fun GameBoard(
 
                     FruitCell(
                         fruit = fruit,
+
                         selected =
                             selectedPosition ==
-                            Position(row, col),
+                                Position(row, col),
 
                         enabled = enabled,
 
                         onSwipe = { direction ->
 
                             onSwipe(
-                                Position(row, col),
+                                Position(
+                                    row,
+                                    col
+                                ),
                                 direction
                             )
                         }
@@ -424,6 +468,13 @@ private fun GameBoard(
         }
     }
 }
+
+
+/*
+ * =========================================================
+ * FRUIT CELL
+ * =========================================================
+ */
 
 @Composable
 private fun FruitCell(
@@ -435,16 +486,32 @@ private fun FruitCell(
 
     val fruitText = when (fruit?.type) {
 
-        FruitType.APPLE -> "🍎"
-        FruitType.ORANGE -> "🍊"
-        FruitType.GRAPE -> "🍇"
-        FruitType.STRAWBERRY -> "🍓"
-        FruitType.BANANA -> "🍌"
-        FruitType.KIWI -> "🥝"
-        FruitType.PEACH -> "🍑"
-        FruitType.CHERRY -> "🍒"
+        FruitType.APPLE ->
+            "🍎"
 
-        null -> "❔"
+        FruitType.ORANGE ->
+            "🍊"
+
+        FruitType.GRAPE ->
+            "🍇"
+
+        FruitType.STRAWBERRY ->
+            "🍓"
+
+        FruitType.BANANA ->
+            "🍌"
+
+        FruitType.KIWI ->
+            "🥝"
+
+        FruitType.PEACH ->
+            "🍑"
+
+        FruitType.CHERRY ->
+            "🍒"
+
+        null ->
+            "❔"
     }
 
     Box(
@@ -469,25 +536,34 @@ private fun FruitCell(
                     detectDragGestures(
 
                         onDragStart = {
+
                             totalX = 0f
                             totalY = 0f
                         },
 
-                        onDrag = { change, dragAmount ->
+                        onDrag = {
+                                change,
+                                dragAmount ->
 
                             change.consume()
 
-                            totalX += dragAmount.x
-                            totalY += dragAmount.y
+                            totalX +=
+                                dragAmount.x
+
+                            totalY +=
+                                dragAmount.y
                         },
 
                         onDragEnd = {
 
-                            val minimumSwipe = 12f
+                            val minimumSwipe =
+                                12f
 
                             if (
-                                abs(totalX) >= minimumSwipe ||
-                                abs(totalY) >= minimumSwipe
+                                abs(totalX) >=
+                                    minimumSwipe ||
+                                abs(totalY) >=
+                                    minimumSwipe
                             ) {
 
                                 if (
@@ -495,7 +571,9 @@ private fun FruitCell(
                                     abs(totalY)
                                 ) {
 
-                                    if (totalX > 0) {
+                                    if (
+                                        totalX > 0
+                                    ) {
 
                                         onSwipe(
                                             DragDirection.RIGHT
@@ -510,7 +588,9 @@ private fun FruitCell(
 
                                 } else {
 
-                                    if (totalY > 0) {
+                                    if (
+                                        totalY > 0
+                                    ) {
 
                                         onSwipe(
                                             DragDirection.DOWN
@@ -527,6 +607,7 @@ private fun FruitCell(
                         },
 
                         onDragCancel = {
+
                             totalX = 0f
                             totalY = 0f
                         }
@@ -534,7 +615,8 @@ private fun FruitCell(
                 }
             },
 
-        contentAlignment = Alignment.Center
+        contentAlignment =
+            Alignment.Center
     ) {
 
         Text(
@@ -543,6 +625,13 @@ private fun FruitCell(
         )
     }
 }
+
+
+/*
+ * =========================================================
+ * SETTINGS PANEL
+ * =========================================================
+ */
 
 @Composable
 private fun SettingsPanel(
@@ -558,19 +647,25 @@ private fun SettingsPanel(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xEE101820)),
-        contentAlignment = Alignment.Center
+            .background(
+                Color(0xEE101820)
+            ),
+        contentAlignment =
+            Alignment.Center
     ) {
 
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(25.dp),
-            shape = RoundedCornerShape(20.dp)
+
+            shape =
+                RoundedCornerShape(20.dp)
         ) {
 
             Column(
-                modifier = Modifier.padding(20.dp)
+                modifier =
+                    Modifier.padding(20.dp)
             ) {
 
                 Text(
@@ -610,14 +705,23 @@ private fun SettingsPanel(
 
                 Button(
                     onClick = onClose,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier =
+                        Modifier.fillMaxWidth()
                 ) {
+
                     Text("CLOSE")
                 }
             }
         }
     }
 }
+
+
+/*
+ * =========================================================
+ * SETTING ROW
+ * =========================================================
+ */
 
 @Composable
 private fun SettingRow(
@@ -645,6 +749,7 @@ private fun SettingRow(
 
         Switch(
             checked = enabled,
+
             onCheckedChange = {
                 onClick()
             }
