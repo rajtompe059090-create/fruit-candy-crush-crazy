@@ -2,7 +2,6 @@ package com.fruitcandycrushcarzy.APP.game.util
 
 import android.app.Activity
 import android.content.Context
-import android.util.Log
 import com.google.android.gms.ads.AdError
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.FullScreenContentCallback
@@ -16,65 +15,37 @@ class AdManager(private val context: Context) {
 
     companion object {
 
-        private const val TAG = "FruitCandyAd"
-
         private const val INTERSTITIAL_AD_UNIT_ID =
-            "ca-app-pub-2230624605934075/4037109000"
+            "ca-app-pub-6146868530948467/2406181764"
 
         private const val REWARDED_AD_UNIT_ID =
-            "ca-app-pub-2230624605934075/7372934967"
+            "ca-app-pub-6146868530948467/9108834256"
     }
 
     private var interstitialAd: InterstitialAd? = null
     private var rewardedAd: RewardedAd? = null
-
-    private var isLoadingInterstitial = false
-    private var isLoadingRewarded = false
 
     init {
         loadInterstitial()
         loadRewarded()
     }
 
-    // =========================================================
-    // INTERSTITIAL
-    // =========================================================
-
     private fun loadInterstitial() {
-
-        if (isLoadingInterstitial || interstitialAd != null) {
-            return
-        }
-
-        isLoadingInterstitial = true
-
-        Log.d(TAG, "Loading interstitial ad...")
-
-        val request = AdRequest.Builder().build()
 
         InterstitialAd.load(
             context,
             INTERSTITIAL_AD_UNIT_ID,
-            request,
+            AdRequest.Builder().build(),
             object : InterstitialAdLoadCallback() {
 
                 override fun onAdLoaded(ad: InterstitialAd) {
 
-                    isLoadingInterstitial = false
                     interstitialAd = ad
-
-                    Log.d(TAG, "INTERSTITIAL LOADED SUCCESSFULLY")
 
                     ad.fullScreenContentCallback =
                         object : FullScreenContentCallback() {
 
                             override fun onAdDismissedFullScreenContent() {
-
-                                Log.d(
-                                    TAG,
-                                    "Interstitial dismissed"
-                                )
-
                                 interstitialAd = null
                                 loadInterstitial()
                             }
@@ -82,12 +53,6 @@ class AdManager(private val context: Context) {
                             override fun onAdFailedToShowFullScreenContent(
                                 adError: AdError
                             ) {
-
-                                Log.e(
-                                    TAG,
-                                    "Interstitial show failed: ${adError.message}"
-                                )
-
                                 interstitialAd = null
                                 loadInterstitial()
                             }
@@ -97,15 +62,11 @@ class AdManager(private val context: Context) {
                 override fun onAdFailedToLoad(
                     error: LoadAdError
                 ) {
-
-                    isLoadingInterstitial = false
                     interstitialAd = null
 
-                    Log.e(
-                        TAG,
-                        "INTERSTITIAL LOAD FAILED: " +
-                                "code=${error.code}, " +
-                                "message=${error.message}"
+                    android.util.Log.e(
+                        "ADMOB",
+                        "Interstitial: ${error.code} ${error.message}"
                     )
                 }
             }
@@ -120,12 +81,6 @@ class AdManager(private val context: Context) {
         val ad = interstitialAd
 
         if (ad == null) {
-
-            Log.d(
-                TAG,
-                "Interstitial not ready. Loading again."
-            )
-
             loadInterstitial()
             onFinished()
             return
@@ -137,12 +92,6 @@ class AdManager(private val context: Context) {
             object : FullScreenContentCallback() {
 
                 override fun onAdDismissedFullScreenContent() {
-
-                    Log.d(
-                        TAG,
-                        "Interstitial closed"
-                    )
-
                     loadInterstitial()
                     onFinished()
                 }
@@ -150,72 +99,39 @@ class AdManager(private val context: Context) {
                 override fun onAdFailedToShowFullScreenContent(
                     adError: AdError
                 ) {
-
-                    Log.e(
-                        TAG,
-                        "Interstitial show error: ${adError.message}"
-                    )
-
                     loadInterstitial()
                     onFinished()
                 }
             }
 
-        Log.d(
-            TAG,
-            "Showing INTERSTITIAL"
-        )
-
         ad.show(activity)
     }
 
-    // =========================================================
-    // REWARDED
-    // =========================================================
-
     private fun loadRewarded() {
-
-        if (isLoadingRewarded || rewardedAd != null) {
-            return
-        }
-
-        isLoadingRewarded = true
-
-        Log.d(TAG, "Loading rewarded ad...")
-
-        val request = AdRequest.Builder().build()
 
         RewardedAd.load(
             context,
             REWARDED_AD_UNIT_ID,
-            request,
+            AdRequest.Builder().build(),
             object : RewardedAdLoadCallback() {
 
-                override fun onAdLoaded(
-                    ad: RewardedAd
-                ) {
-
-                    isLoadingRewarded = false
+                override fun onAdLoaded(ad: RewardedAd) {
                     rewardedAd = ad
 
-                    Log.d(
-                        TAG,
-                        "REWARDED LOADED SUCCESSFULLY"
+                    android.util.Log.d(
+                        "ADMOB",
+                        "Rewarded loaded"
                     )
                 }
 
                 override fun onAdFailedToLoad(
                     error: LoadAdError
                 ) {
-
-                    isLoadingRewarded = false
                     rewardedAd = null
 
-                    Log.e(
-                        TAG,
-                        "REWARDED LOAD FAILED: " +
-                                "code=${error.code}, " +
-                                "message=${error.message}"
+                    android.util.Log.e(
+                        "ADMOB",
+                        "Rewarded: ${error.code} ${error.message}"
                     )
                 }
             }
@@ -230,12 +146,6 @@ class AdManager(private val context: Context) {
         val ad = rewardedAd
 
         if (ad == null) {
-
-            Log.d(
-                TAG,
-                "Rewarded not ready. Loading again."
-            )
-
             loadRewarded()
             return
         }
@@ -246,40 +156,17 @@ class AdManager(private val context: Context) {
             object : FullScreenContentCallback() {
 
                 override fun onAdDismissedFullScreenContent() {
-
-                    Log.d(
-                        TAG,
-                        "Rewarded closed"
-                    )
-
                     loadRewarded()
                 }
 
                 override fun onAdFailedToShowFullScreenContent(
                     adError: AdError
                 ) {
-
-                    Log.e(
-                        TAG,
-                        "Rewarded show error: ${adError.message}"
-                    )
-
                     loadRewarded()
                 }
             }
 
-        Log.d(
-            TAG,
-            "Showing REWARDED"
-        )
-
         ad.show(activity) {
-
-            Log.d(
-                TAG,
-                "REWARDED COMPLETED"
-            )
-
             onReward()
         }
     }
