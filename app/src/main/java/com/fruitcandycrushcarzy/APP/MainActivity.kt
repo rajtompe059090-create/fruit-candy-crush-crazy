@@ -74,10 +74,6 @@ class MainActivity : ComponentActivity() {
                     AdManager(context)
                 }
 
-                /*
-                 * MUSIC
-                 */
-
                 val mediaPlayer = remember {
                     android.media.MediaPlayer.create(
                         context,
@@ -166,21 +162,23 @@ class MainActivity : ComponentActivity() {
                 }
 
                 /*
-                 * APP OPEN INTERSTITIAL
+                 * APP OPEN AD
                  *
-                 * AdManager pehle ad preload karega.
-                 * Thoda delay isliye diya hai taaki ad ko
-                 * load hone ka chance mile.
+                 * AppOpen ID:
+                 * ca-app-pub-6146868530948467/3515500297
+                 *
+                 * AdManager ke andar App Open ad
+                 * already preload hota hai.
                  */
 
                 LaunchedEffect(Unit) {
 
                     kotlinx.coroutines.delay(2500)
 
-                    adManager.showInterstitial(
+                    adManager.showAppOpenAd(
                         this@MainActivity
                     ) {
-                        // Game continues after ad closes.
+                        // Ad close hone ke baad game continue.
                     }
                 }
 
