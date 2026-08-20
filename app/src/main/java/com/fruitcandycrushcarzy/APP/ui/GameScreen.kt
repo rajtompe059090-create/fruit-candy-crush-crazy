@@ -28,11 +28,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import com.fruitcandycrushcarzy.APP.game.model.Fruit
 import com.fruitcandycrushcarzy.APP.game.model.FruitType
 import com.fruitcandycrushcarzy.APP.game.model.Position
 import com.fruitcandycrushcarzy.APP.game.viewmodel.DragDirection
 import com.fruitcandycrushcarzy.APP.game.viewmodel.GameViewModel
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.AdSize
+import com.google.android.gms.ads.AdView
 import kotlin.math.abs
 
 @Composable
@@ -50,7 +54,12 @@ fun GameScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(8.dp),
+                .padding(
+                    start = 8.dp,
+                    top = 8.dp,
+                    end = 8.dp,
+                    bottom = 58.dp
+                ),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
@@ -75,7 +84,7 @@ fun GameScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(5.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -87,7 +96,7 @@ fun GameScreen(
                 SmallInfo("TIME", state.timeLeftSeconds.toString())
             }
 
-            Spacer(modifier = Modifier.height(7.dp))
+            Spacer(modifier = Modifier.height(5.dp))
 
             Text(
                 text = "TARGET ${state.targetScore}",
@@ -95,7 +104,7 @@ fun GameScreen(
                 fontSize = 14.sp
             )
 
-            Spacer(modifier = Modifier.height(5.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             GameBoard(
                 grid = state.grid,
@@ -109,7 +118,7 @@ fun GameScreen(
                 }
             )
 
-            Spacer(modifier = Modifier.height(7.dp))
+            Spacer(modifier = Modifier.height(5.dp))
 
             Text(
                 text = "💰 ₹${state.walletBalance}",
@@ -117,7 +126,7 @@ fun GameScreen(
                 fontSize = 20.sp
             )
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             Row(
                 horizontalArrangement = Arrangement.Center
@@ -134,7 +143,7 @@ fun GameScreen(
                     Text("🔀")
                 }
 
-                Spacer(modifier = Modifier.width(6.dp))
+                Spacer(modifier = Modifier.width(5.dp))
 
                 Button(
                     onClick = {
@@ -147,7 +156,7 @@ fun GameScreen(
                     Text("🎁 +5")
                 }
 
-                Spacer(modifier = Modifier.width(6.dp))
+                Spacer(modifier = Modifier.width(5.dp))
 
                 Button(
                     onClick = {
@@ -158,12 +167,47 @@ fun GameScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(5.dp))
+            Spacer(modifier = Modifier.height(3.dp))
 
             Text(
-                text = "👉 Swipe a fruit up / down / left / right",
+                text = "👉 Swipe a fruit",
                 color = Color.LightGray,
-                fontSize = 12.sp
+                fontSize = 11.sp
+            )
+        }
+
+        /*
+         * BANNER AD
+         * Your real AdMob Banner Ad Unit ID
+         */
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp)
+                .align(Alignment.BottomCenter)
+                .background(Color.Black),
+            contentAlignment = Alignment.Center
+        ) {
+
+            AndroidView(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+
+                factory = { context ->
+
+                    AdView(context).apply {
+
+                        setAdSize(AdSize.BANNER)
+
+                        adUnitId =
+                            "ca-app-pub-6146868530948467/2054244812"
+
+                        loadAd(
+                            AdRequest.Builder().build()
+                        )
+                    }
+                }
             )
         }
 
@@ -203,7 +247,9 @@ fun GameScreen(
                         fontSize = 30.sp
                     )
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(
+                        modifier = Modifier.height(10.dp)
+                    )
 
                     Text(
                         text = "Next Level: ${state.level + 1}",
@@ -294,7 +340,8 @@ private fun GameBoard(
 
                     FruitCell(
                         fruit = fruit,
-                        selected = selectedPosition ==
+                        selected =
+                            selectedPosition ==
                             Position(row, col),
                         enabled = enabled,
                         onSwipe = { direction ->
@@ -375,13 +422,19 @@ private fun FruitCell(
                                 abs(totalY) >= minimumSwipe
                             ) {
 
-                                if (abs(totalX) > abs(totalY)) {
+                                if (
+                                    abs(totalX) >
+                                    abs(totalY)
+                                ) {
 
                                     if (totalX > 0) {
+
                                         onSwipe(
                                             DragDirection.RIGHT
                                         )
+
                                     } else {
+
                                         onSwipe(
                                             DragDirection.LEFT
                                         )
@@ -390,10 +443,13 @@ private fun FruitCell(
                                 } else {
 
                                     if (totalY > 0) {
+
                                         onSwipe(
                                             DragDirection.DOWN
                                         )
+
                                     } else {
+
                                         onSwipe(
                                             DragDirection.UP
                                         )
@@ -453,7 +509,9 @@ private fun SettingsPanel(
                     fontSize = 25.sp
                 )
 
-                Spacer(modifier = Modifier.height(15.dp))
+                Spacer(
+                    modifier = Modifier.height(15.dp)
+                )
 
                 SettingRow(
                     title = "🔊 Sound",
@@ -477,7 +535,9 @@ private fun SettingsPanel(
                     onClick = onVibration
                 )
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(
+                    modifier = Modifier.height(20.dp)
+                )
 
                 Button(
                     onClick = onClose,
@@ -501,8 +561,10 @@ private fun SettingRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 10.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        horizontalArrangement =
+            Arrangement.SpaceBetween,
+        verticalAlignment =
+            Alignment.CenterVertically
     ) {
 
         Text(
