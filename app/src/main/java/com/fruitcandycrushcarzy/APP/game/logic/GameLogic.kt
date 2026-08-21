@@ -6,9 +6,18 @@ import com.fruitcandycrushcarzy.APP.game.model.SpecialType
 
 object GameLogic {
 
-    const val GRID_SIZE = 8
+    // ==========================================
+    // 6 x 6 CANDY CRUSH BOARD
+    // ==========================================
+
+    const val GRID_SIZE = 6
+
+    // ==========================================
+    // CREATE SAFE INITIAL BOARD
+    // ==========================================
 
     fun createInitialGrid(): Array<Array<Fruit?>> {
+
         val grid = Array(GRID_SIZE) {
             arrayOfNulls<Fruit>(GRID_SIZE)
         }
@@ -18,15 +27,20 @@ object GameLogic {
 
                 var fruit: Fruit
 
+                var attempts = 0
+
                 do {
+
                     fruit = Fruit.random()
+                    attempts++
+
                 } while (
                     wouldCreateMatch(
                         grid,
                         r,
                         c,
                         fruit
-                    )
+                    ) && attempts < 100
                 )
 
                 grid[r][c] = fruit
@@ -43,20 +57,30 @@ object GameLogic {
         fruit: Fruit
     ): Boolean {
 
+        // Horizontal 3
         if (
             col >= 2 &&
             grid[row][col - 1]?.type == fruit.type &&
             grid[row][col - 2]?.type == fruit.type
-        ) return true
+        ) {
+            return true
+        }
 
+        // Vertical 3
         if (
             row >= 2 &&
             grid[row - 1][col]?.type == fruit.type &&
             grid[row - 2][col]?.type == fruit.type
-        ) return true
+        ) {
+            return true
+        }
 
         return false
     }
+
+    // ==========================================
+    // FIND MATCH GROUPS
+    // ==========================================
 
     fun findMatchGroups(
         grid: Array<Array<Fruit?>>
@@ -65,96 +89,98 @@ object GameLogic {
         val groups =
             mutableListOf<List<Position>>()
 
-        // Horizontal
+        // --------------------------------------
+        // HORIZONTAL
+        // --------------------------------------
+
         for (r in 0 until GRID_SIZE) {
 
-            var count = 1
+            var start = 0
 
-            for (c in 1 until GRID_SIZE) {
+            while (start < GRID_SIZE) {
 
-                if (
-                    grid[r][c] != null &&
-                    grid[r][c]?.type ==
-                    grid[r][c - 1]?.type
-                ) {
-                    count++
-                } else {
+                val fruit =
+                    grid[r][start]
 
-                    if (count >= 3) {
-
-                        groups.add(
-                            (0 until count).map {
-                                Position(
-                                    r,
-                                    c - 1 - it
-                                )
-                            }
-                        )
-                    }
-
-                    count = 1
+                if (fruit == null) {
+                    start++
+                    continue
                 }
-            }
 
-            if (count >= 3) {
+                var end = start + 1
 
-                groups.add(
-                    (0 until count).map {
-                        Position(
-                            r,
-                            GRID_SIZE - 1 - it
-                        )
-                    }
-                )
+                while (
+                    end < GRID_SIZE &&
+                    grid[r][end]?.type == fruit.type
+                ) {
+                    end++
+                }
+
+                val count =
+                    end - start
+
+                if (count >= 3) {
+
+                    groups.add(
+                        (start until end).map { c ->
+                            Position(r, c)
+                        }
+                    )
+                }
+
+                start = end
             }
         }
 
-        // Vertical
+        // --------------------------------------
+        // VERTICAL
+        // --------------------------------------
+
         for (c in 0 until GRID_SIZE) {
 
-            var count = 1
+            var start = 0
 
-            for (r in 1 until GRID_SIZE) {
+            while (start < GRID_SIZE) {
 
-                if (
-                    grid[r][c] != null &&
-                    grid[r][c]?.type ==
-                    grid[r - 1][c]?.type
-                ) {
-                    count++
-                } else {
+                val fruit =
+                    grid[start][c]
 
-                    if (count >= 3) {
-
-                        groups.add(
-                            (0 until count).map {
-                                Position(
-                                    r - 1 - it,
-                                    c
-                                )
-                            }
-                        )
-                    }
-
-                    count = 1
+                if (fruit == null) {
+                    start++
+                    continue
                 }
-            }
 
-            if (count >= 3) {
+                var end = start + 1
 
-                groups.add(
-                    (0 until count).map {
-                        Position(
-                            GRID_SIZE - 1 - it,
-                            c
-                        )
-                    }
-                )
+                while (
+                    end < GRID_SIZE &&
+                    grid[end][c]?.type == fruit.type
+                ) {
+                    end++
+                }
+
+                val count =
+                    end - start
+
+                if (count >= 3) {
+
+                    groups.add(
+                        (start until end).map { r ->
+                            Position(r, c)
+                        }
+                    )
+                }
+
+                start = end
             }
         }
 
         return groups
     }
+
+    // ==========================================
+    // SPECIAL / L / T / LINE EFFECTS
+    // ==========================================
 
     fun getAffectedPositions(
         grid: Array<Array<Fruit?>>,
@@ -164,66 +190,72 @@ object GameLogic {
         val affected =
             matches.toMutableSet()
 
-        val toCheck =
+        val queue =
             matches.toMutableList()
 
         val checked =
             mutableSetOf<Position>()
 
-        while (toCheck.isNotEmpty()) {
+        while (queue.isNotEmpty()) {
 
             val pos =
-                toCheck.removeAt(0)
+                queue.removeAt(0)
 
-            if (pos in checked) continue
-
-            checked.add(pos)
+            if (!checked.add(pos)) {
+                continue
+            }
 
             val fruit =
-                grid[pos.row][pos.col]
+                grid.getOrNull(pos.row)
+                    ?.getOrNull(pos.col)
                     ?: continue
 
             when (fruit.special) {
+
+                // ----------------------------------
+                // ROW BLAST
+                // ----------------------------------
 
                 SpecialType.ROW_BLAST -> {
 
                     for (c in 0 until GRID_SIZE) {
 
-                        val newPos =
+                        val p =
                             Position(
                                 pos.row,
                                 c
                             )
 
-                        if (
-                            affected.add(
-                                newPos
-                            )
-                        ) {
-                            toCheck.add(newPos)
+                        if (affected.add(p)) {
+                            queue.add(p)
                         }
                     }
                 }
+
+                // ----------------------------------
+                // COLUMN BLAST
+                // ----------------------------------
 
                 SpecialType.COL_BLAST -> {
 
                     for (r in 0 until GRID_SIZE) {
 
-                        val newPos =
+                        val p =
                             Position(
                                 r,
                                 pos.col
                             )
 
-                        if (
-                            affected.add(
-                                newPos
-                            )
-                        ) {
-                            toCheck.add(newPos)
+                        if (affected.add(p)) {
+                            queue.add(p)
                         }
                     }
                 }
+
+                // ----------------------------------
+                // BOMB
+                // 3x3 AREA
+                // ----------------------------------
 
                 SpecialType.BOMB -> {
 
@@ -242,32 +274,103 @@ object GameLogic {
                                 c in 0 until GRID_SIZE
                             ) {
 
-                                val newPos =
-                                    Position(
-                                        r,
-                                        c
-                                    )
+                                val p =
+                                    Position(r, c)
 
-                                if (
-                                    affected.add(
-                                        newPos
-                                    )
-                                ) {
-                                    toCheck.add(
-                                        newPos
-                                    )
+                                if (affected.add(p)) {
+                                    queue.add(p)
                                 }
                             }
                         }
                     }
                 }
 
-                SpecialType.NONE -> {}
+                SpecialType.NONE -> Unit
             }
         }
 
         return affected
     }
+
+    // ==========================================
+    // DETECT L / T SHAPE
+    // ==========================================
+
+    fun findSpecialShapePositions(
+        grid: Array<Array<Fruit?>>,
+        matches: List<List<Position>>
+    ): List<Triple<Position, com.fruitcandycrushcarzy.APP.game.model.FruitType, SpecialType>> {
+
+        val result =
+            mutableListOf<
+                Triple<
+                    Position,
+                    com.fruitcandycrushcarzy.APP.game.model.FruitType,
+                    SpecialType
+                >
+            >()
+
+        val allMatched =
+            matches.flatten().toSet()
+
+        if (allMatched.size < 5) {
+            return result
+        }
+
+        val byType =
+            allMatched.groupBy { position ->
+                grid[position.row][position.col]?.type
+            }
+
+        byType.forEach { (_, positions) ->
+
+            if (positions.size < 5) {
+                return@forEach
+            }
+
+            val rows =
+                positions.groupBy { it.row }
+
+            val cols =
+                positions.groupBy { it.col }
+
+            val hasHorizontal =
+                rows.any { it.value.size >= 3 }
+
+            val hasVertical =
+                cols.any { it.value.size >= 3 }
+
+            if (
+                hasHorizontal &&
+                hasVertical
+            ) {
+
+                val center =
+                    positions.first()
+
+                val fruit =
+                    grid[
+                        center.row
+                    ][
+                        center.col
+                    ] ?: return@forEach
+
+                result.add(
+                    Triple(
+                        center,
+                        fruit.type,
+                        SpecialType.BOMB
+                    )
+                )
+            }
+        }
+
+        return result
+    }
+
+    // ==========================================
+    // GRAVITY
+    // ==========================================
 
     fun applyGravity(
         grid: Array<Array<Fruit?>>
@@ -278,35 +381,42 @@ object GameLogic {
 
         for (c in 0 until GRID_SIZE) {
 
-            var emptyRow =
+            var writeRow =
                 GRID_SIZE - 1
 
             for (
                 r in GRID_SIZE - 1 downTo 0
             ) {
 
-                if (grid[r][c] != null) {
+                val fruit =
+                    grid[r][c]
 
-                    if (r != emptyRow) {
+                if (fruit != null) {
+
+                    if (r != writeRow) {
 
                         movements.add(
                             Position(r, c) to
-                                Position(emptyRow, c)
+                                Position(writeRow, c)
                         )
 
-                        grid[emptyRow][c] =
-                            grid[r][c]
+                        grid[writeRow][c] =
+                            fruit
 
                         grid[r][c] = null
                     }
 
-                    emptyRow--
+                    writeRow--
                 }
             }
         }
 
         return movements
     }
+
+    // ==========================================
+    // REFILL
+    // ==========================================
 
     fun refillGrid(
         grid: Array<Array<Fruit?>>
@@ -324,10 +434,12 @@ object GameLogic {
                     val fruit =
                         Fruit.random()
 
-                    grid[r][c] = fruit
+                    grid[r][c] =
+                        fruit
 
                     newFruits.add(
-                        fruit to Position(r, c)
+                        fruit to
+                            Position(r, c)
                     )
                 }
             }
@@ -336,19 +448,31 @@ object GameLogic {
         return newFruits
     }
 
+    // ==========================================
+    // ADJACENT
+    // ==========================================
+
     fun isAdjacent(
         p1: Position,
         p2: Position
     ): Boolean {
 
         return (
-            Math.abs(p1.row - p2.row) == 1 &&
-            p1.col == p2.col
-        ) || (
-            Math.abs(p1.col - p2.col) == 1 &&
-            p1.row == p2.row
-        )
+            kotlin.math.abs(
+                p1.row - p2.row
+            ) == 1 &&
+                p1.col == p2.col
+            ) || (
+            kotlin.math.abs(
+                p1.col - p2.col
+            ) == 1 &&
+                p1.row == p2.row
+            )
     }
+
+    // ==========================================
+    // AVAILABLE MOVE CHECK
+    // ==========================================
 
     fun hasAvailableMoves(
         grid: Array<Array<Fruit?>>
@@ -358,6 +482,7 @@ object GameLogic {
 
             for (c in 0 until GRID_SIZE) {
 
+                // RIGHT
                 if (
                     c < GRID_SIZE - 1 &&
                     checkSwapMatch(
@@ -371,6 +496,7 @@ object GameLogic {
                     return true
                 }
 
+                // DOWN
                 if (
                     r < GRID_SIZE - 1 &&
                     checkSwapMatch(
@@ -389,6 +515,10 @@ object GameLogic {
         return false
     }
 
+    // ==========================================
+    // CHECK SWAP
+    // ==========================================
+
     private fun checkSwapMatch(
         grid: Array<Array<Fruit?>>,
         r1: Int,
@@ -397,62 +527,31 @@ object GameLogic {
         c2: Int
     ): Boolean {
 
-        val fruit1 =
-            grid[r1][c1]
-                ?: return false
+        val copy =
+            Array(GRID_SIZE) { r ->
+                Array<Fruit?>(
+                    GRID_SIZE
+                ) { c ->
+                    grid[r][c]
+                }
+            }
 
-        val fruit2 =
-            grid[r2][c2]
-                ?: return false
+        val temp =
+            copy[r1][c1]
 
-        if (
-            checkMatchAt(
-                grid,
-                r2,
-                c2,
-                fruit1,
-                r1,
-                c1
-            )
-        ) return true
+        copy[r1][c1] =
+            copy[r2][c2]
 
-        if (
-            checkMatchAt(
-                grid,
-                r2,
-                c2,
-                fruit1,
-                r1,
-                c1,
-                horizontal = false
-            )
-        ) return true
+        copy[r2][c2] =
+            temp
 
-        if (
-            checkMatchAt(
-                grid,
-                r1,
-                c1,
-                fruit2,
-                r2,
-                c2
-            )
-        ) return true
-
-        if (
-            checkMatchAt(
-                grid,
-                r1,
-                c1,
-                fruit2,
-                r2,
-                c2,
-                horizontal = false
-            )
-        ) return true
-
-        return false
+        return findMatchGroups(copy)
+            .isNotEmpty()
     }
+
+    // ==========================================
+    // FIND MATCH AT
+    // ==========================================
 
     private fun checkMatchAt(
         grid: Array<Array<Fruit?>>,
@@ -475,18 +574,19 @@ object GameLogic {
                 if (
                     i == skipC &&
                     r == skipR
-                ) break
+                ) {
+                    break
+                }
 
                 if (
                     grid[r][i]?.type ==
                     fruit.type
                 ) {
                     count++
+                    i--
                 } else {
                     break
                 }
-
-                i--
             }
 
             i = c + 1
@@ -496,18 +596,19 @@ object GameLogic {
                 if (
                     i == skipC &&
                     r == skipR
-                ) break
+                ) {
+                    break
+                }
 
                 if (
                     grid[r][i]?.type ==
                     fruit.type
                 ) {
                     count++
+                    i++
                 } else {
                     break
                 }
-
-                i++
             }
 
         } else {
@@ -519,18 +620,19 @@ object GameLogic {
                 if (
                     i == skipR &&
                     c == skipC
-                ) break
+                ) {
+                    break
+                }
 
                 if (
                     grid[i][c]?.type ==
                     fruit.type
                 ) {
                     count++
+                    i--
                 } else {
                     break
                 }
-
-                i--
             }
 
             i = r + 1
@@ -540,18 +642,19 @@ object GameLogic {
                 if (
                     i == skipR &&
                     c == skipC
-                ) break
+                ) {
+                    break
+                }
 
                 if (
                     grid[i][c]?.type ==
                     fruit.type
                 ) {
                     count++
+                    i++
                 } else {
                     break
                 }
-
-                i++
             }
         }
 
