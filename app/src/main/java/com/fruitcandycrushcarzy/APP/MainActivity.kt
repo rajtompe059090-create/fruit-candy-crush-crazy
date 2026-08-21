@@ -14,23 +14,16 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -55,9 +48,7 @@ private enum class AppPage {
 
 class MainActivity : ComponentActivity() {
 
-    override fun onCreate(
-        savedInstanceState: Bundle?
-    ) {
+    override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         MobileAds.initialize(this) {}
@@ -68,213 +59,68 @@ class MainActivity : ComponentActivity() {
 
             FRUITCANDYCRUSHCARZYTheme {
 
-                val context =
-                    LocalContext.current
+                val context = LocalContext.current
 
-                val lifecycleOwner =
-                    LocalLifecycleOwner.current
+                val repository = remember {
+                    ScoreRepository(context)
+                }
 
-                val scoreRepository =
-                    remember {
-                        ScoreRepository(context)
+                val viewModel: GameViewModel = viewModel(
+                    factory = object : ViewModelProvider.Factory {
+
+                        override fun <T : ViewModel> create(
+                            modelClass: Class<T>
+                        ): T {
+
+                            @Suppress("UNCHECKED_CAST")
+
+                            return GameViewModel(
+                                repository
+                            ) as T
+                        }
                     }
+                )
 
-                val viewModel:
-                    GameViewModel =
-                    viewModel(
-                        factory =
-                            object :
-                                ViewModelProvider.Factory {
+                val uiState by viewModel.uiState.collectAsState()
 
-                                override fun <T : ViewModel>
-                                    create(
-                                        modelClass:
-                                        Class<T>
-                                    ): T {
+                val adManager = remember {
+                    AdManager(context)
+                }
 
-                                    @Suppress(
-                                        "UNCHECKED_CAST"
-                                    )
+                val soundManager = remember {
+                    SoundManager(context)
+                }
 
-                                    return GameViewModel(
-                                        scoreRepository
-                                    ) as T
-                                }
-                            }
+                val vibrationManager = remember {
+                    VibrationManager(context)
+                }
+
+                var currentPage by remember {
+                    mutableStateOf(AppPage.MENU)
+                }
+
+                /*
+                 * =========================================
+                 * UNLOCKED LEVEL
+                 * =========================================
+                 */
+
+                val preferences = remember {
+
+                    context.getSharedPreferences(
+                        "game_progress",
+                        MODE_PRIVATE
                     )
+                }
 
-                val uiState by
-                    viewModel.uiState.collectAsState()
+                var highestLevel by remember {
 
-                val soundManager =
-                    remember {
-                        SoundManager(context)
-                    }
-
-                val vibrationManager =
-                    remember {
-                        VibrationManager(context)
-                    }
-
-                val adManager =
-                    remember {
-                        AdManager(context)
-                    }
-
-                var currentPage by
-                    remember {
-                        mutableStateOf(
-                            AppPage.MENU
+                    mutableIntStateOf(
+                        preferences.getInt(
+                            "highest_level",
+                            1
                         )
-                    }
-
-                /*
-                 * =========================================
-                 * HIGHEST LEVEL
-                 * =========================================
-                 */
-
-                val highestLevel by
-                    scoreRepository
-                        .highestLevelFlow
-                        .collectAsState(
-                            initial = 1
-                        )
-
-                /*
-                 * =========================================
-                 * MUSIC
-                 * =========================================
-                 */
-
-                val mediaPlayer =
-                    remember {
-
-                        android.media.MediaPlayer
-                            .create(
-                                context,
-                                R.raw.xtremefreddy_loop1
-                            )
-                            ?.apply {
-                                isLooping = true
-                            }
-                    }
-
-                DisposableEffect(
-                    lifecycleOwner,
-                    uiState.isMusicEnabled
-                ) {
-
-                    val observer =
-                        LifecycleEventObserver {
-                                _,
-                                event ->
-
-                            when (event) {
-
-                                Lifecycle.Event.ON_RESUME -> {
-
-                                    if (
-                                        uiState.isMusicEnabled &&
-                                        mediaPlayer != null &&
-                                        !mediaPlayer.isPlaying
-                                    ) {
-                                        mediaPlayer.start()
-                                    }
-                                }
-
-                                Lifecycle.Event.ON_PAUSE -> {
-
-                                    if (
-                                        mediaPlayer != null &&
-                                        mediaPlayer.isPlaying
-                                    ) {
-                                        mediaPlayer.pause()
-                                    }
-                                }
-
-                                else -> Unit
-                            }
-                        }
-
-                    lifecycleOwner.lifecycle
-                        .addObserver(observer)
-
-                    onDispose {
-
-                        lifecycleOwner.lifecycle
-                            .removeObserver(
-                                observer
-                            )
-                    }
-                }
-
-                /*
-                 * =========================================
-                 * MUSIC TOGGLE
-                 * =========================================
-                 */
-
-                LaunchedEffect(
-                    uiState.isMusicEnabled
-                ) {
-
-                    if (
-                        uiState.isMusicEnabled
-                    ) {
-
-                        if (
-                            mediaPlayer != null &&
-                            !mediaPlayer.isPlaying
-                        ) {
-                            mediaPlayer.start()
-                        }
-
-                    } else {
-
-                        if (
-                            mediaPlayer != null &&
-                            mediaPlayer.isPlaying
-                        ) {
-                            mediaPlayer.pause()
-                        }
-                    }
-                }
-
-                /*
-                 * =========================================
-                 * CLEANUP
-                 * =========================================
-                 */
-
-                DisposableEffect(Unit) {
-
-                    onDispose {
-
-                        try {
-                            mediaPlayer?.stop()
-                        } catch (_: Exception) {
-                        }
-
-                        mediaPlayer?.release()
-
-                        soundManager.release()
-                    }
-                }
-
-                /*
-                 * =========================================
-                 * APP OPEN AD
-                 * =========================================
-                 */
-
-                LaunchedEffect(Unit) {
-
-                    delay(3500)
-
-                    adManager.showAppOpenAd(
-                        this@MainActivity
-                    ) {}
+                    )
                 }
 
                 /*
@@ -285,90 +131,88 @@ class MainActivity : ComponentActivity() {
 
                 LaunchedEffect(Unit) {
 
-                    viewModel.events.collect {
-                        event ->
+                    viewModel.events.collect { event ->
 
                         when (event) {
 
                             GameEvent.MATCH -> {
 
                                 if (
-                                    viewModel
-                                        .uiState
-                                        .value
+                                    viewModel.uiState.value
                                         .isSoundEnabled
                                 ) {
-                                    soundManager
-                                        .playMatch()
+                                    soundManager.playMatch()
                                 }
 
                                 if (
-                                    viewModel
-                                        .uiState
-                                        .value
+                                    viewModel.uiState.value
                                         .isVibrationEnabled
                                 ) {
-                                    vibrationManager
-                                        .vibrate(50)
+                                    vibrationManager.vibrate(40)
                                 }
                             }
 
                             GameEvent.SWAP -> {
 
                                 if (
-                                    viewModel
-                                        .uiState
-                                        .value
+                                    viewModel.uiState.value
                                         .isSoundEnabled
                                 ) {
-                                    soundManager
-                                        .playSwap()
+                                    soundManager.playSwap()
                                 }
                             }
 
                             GameEvent.SPECIAL_EXPLOSION -> {
 
                                 if (
-                                    viewModel
-                                        .uiState
-                                        .value
+                                    viewModel.uiState.value
                                         .isSoundEnabled
                                 ) {
-                                    soundManager
-                                        .playExplosion()
+                                    soundManager.playExplosion()
                                 }
 
                                 if (
-                                    viewModel
-                                        .uiState
-                                        .value
+                                    viewModel.uiState.value
                                         .isVibrationEnabled
                                 ) {
-                                    vibrationManager
-                                        .vibrate(100)
+                                    vibrationManager.vibrate(100)
                                 }
                             }
 
                             GameEvent.LEVEL_UP -> {
 
                                 if (
-                                    viewModel
-                                        .uiState
-                                        .value
+                                    viewModel.uiState.value
                                         .isSoundEnabled
                                 ) {
-                                    soundManager
-                                        .playLevelUp()
+                                    soundManager.playLevelUp()
                                 }
 
                                 if (
-                                    viewModel
-                                        .uiState
-                                        .value
+                                    viewModel.uiState.value
                                         .isVibrationEnabled
                                 ) {
-                                    vibrationManager
-                                        .vibrate(200)
+                                    vibrationManager.vibrate(200)
+                                }
+
+                                /*
+                                 * Unlock next level
+                                 */
+
+                                val next =
+                                    (uiState.level + 1)
+                                        .coerceAtMost(1000)
+
+                                if (next > highestLevel) {
+
+                                    highestLevel = next
+
+                                    preferences.edit()
+                                        .putInt(
+                                            "highest_level",
+                                            highestLevel
+                                        )
+                                        .apply()
                                 }
                             }
 
@@ -378,8 +222,9 @@ class MainActivity : ComponentActivity() {
                                     this@MainActivity
                                 ) {
 
-                                    viewModel
-                                        .grantRewardMoves(10)
+                                    viewModel.grantRewardMoves(
+                                        10
+                                    )
                                 }
                             }
 
@@ -419,17 +264,11 @@ class MainActivity : ComponentActivity() {
 
                 /*
                  * =========================================
-                 * PAGES
+                 * PAGE
                  * =========================================
                  */
 
                 when (currentPage) {
-
-                    /*
-                     * =====================================
-                     * MENU
-                     * =====================================
-                     */
 
                     AppPage.MENU -> {
 
@@ -446,8 +285,7 @@ class MainActivity : ComponentActivity() {
 
                             onSettings = {
 
-                                viewModel
-                                    .toggleSettings()
+                                viewModel.toggleSettings()
                             },
 
                             onWithdrawal = {
@@ -464,12 +302,6 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
-                    /*
-                     * =====================================
-                     * LEVELS
-                     * =====================================
-                     */
-
                     AppPage.LEVELS -> {
 
                         LevelMapScreen(
@@ -483,26 +315,26 @@ class MainActivity : ComponentActivity() {
                                     AppPage.MENU
                             },
 
-                            onLevelSelected = {
-                                level ->
+                            onLevelSelected = { level ->
 
                                 if (
-                                    level <=
-                                    highestLevel
+                                    level <= highestLevel
                                 ) {
 
                                     currentPage =
                                         AppPage.GAME
+
+                                    /*
+                                     * Reset game for selected level.
+                                     *
+                                     * Current GameViewModel
+                                     * starts from its current level.
+                                     */
+                                    viewModel.resetGame()
                                 }
                             }
                         )
                     }
-
-                    /*
-                     * =====================================
-                     * GAME
-                     * =====================================
-                     */
 
                     AppPage.GAME -> {
 
@@ -512,8 +344,7 @@ class MainActivity : ComponentActivity() {
                         ) {
 
                             GameScreen(
-                                viewModel =
-                                    viewModel
+                                viewModel = viewModel
                             )
 
                             Button(
@@ -527,24 +358,16 @@ class MainActivity : ComponentActivity() {
                                 modifier =
                                     Modifier
                                         .align(
-                                            Alignment
-                                                .TopStart
+                                            Alignment.TopStart
                                         )
                                         .padding(8.dp)
+
                             ) {
 
-                                Text(
-                                    "← Levels"
-                                )
+                                Text("← Levels")
                             }
                         }
                     }
-
-                    /*
-                     * =====================================
-                     * WITHDRAW
-                     * =====================================
-                     */
 
                     AppPage.WITHDRAW -> {
 
@@ -560,12 +383,6 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     }
-
-                    /*
-                     * =====================================
-                     * TASK
-                     * =====================================
-                     */
 
                     AppPage.TASK -> {
 
@@ -583,7 +400,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
 
 /*
  * ============================================================
@@ -606,218 +422,184 @@ private fun MainMenuScreen(
 
 ) {
 
-    Box(
+    Column(
 
         modifier =
             Modifier
                 .fillMaxSize()
                 .background(
                     Color(0xFF101820)
-                ),
+                )
+                .padding(22.dp),
 
-        contentAlignment =
-            Alignment.Center
+        horizontalAlignment =
+            Alignment.CenterHorizontally
     ) {
 
-        Column(
+        Spacer(
+            modifier =
+                Modifier.height(40.dp)
+        )
+
+        Text(
+            text = "🍓",
+            fontSize = 64.sp
+        )
+
+        Text(
+            text = "FRUIT CRUSH",
+            color = Color.White,
+            fontSize = 32.sp,
+            fontWeight =
+                FontWeight.Bold
+        )
+
+        Text(
+            text = "🍬 Match • Crush • Win 🍬",
+            color = Color(0xFFFFD54F),
+            fontSize = 15.sp
+        )
+
+        Spacer(
+            modifier =
+                Modifier.height(25.dp)
+        )
+
+        Card(
 
             modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(22.dp),
+                Modifier.fillMaxWidth(),
 
-            horizontalAlignment =
-                Alignment.CenterHorizontally
+            shape =
+                RoundedCornerShape(20.dp),
+
+            colors =
+                CardDefaults.cardColors(
+                    containerColor =
+                        Color(0xFF263238)
+                )
         ) {
 
-            Text(
-                "🍓",
-                fontSize = 62.sp
-            )
-
-            Text(
-                "FRUIT CRUSH",
-                color = Color.White,
-                fontSize = 32.sp,
-                fontWeight =
-                    FontWeight.Bold
-            )
-
-            Text(
-                "🍬 Match • Crush • Win 🍬",
-                color =
-                    Color(0xFFFFD54F),
-                fontSize = 15.sp
-            )
-
-            Spacer(
-                Modifier.height(25.dp)
-            )
-
-            Card(
+            Column(
 
                 modifier =
-                    Modifier.fillMaxWidth(),
+                    Modifier.padding(18.dp),
 
-                colors =
-                    CardDefaults.cardColors(
-                        containerColor =
-                            Color(0xFF263238)
-                    ),
-
-                shape =
-                    RoundedCornerShape(18.dp)
-            ) {
-
-                Column(
-
-                    modifier =
-                        Modifier.padding(18.dp),
-
-                    horizontalAlignment =
-                        Alignment.CenterHorizontally
-                ) {
-
-                    Text(
-                        "💰 Wallet",
-                        color =
-                            Color.LightGray
-                    )
-
-                    Text(
-                        "₹$walletBalance",
-                        color =
-                            Color(0xFFFFD54F),
-                        fontSize = 28.sp,
-                        fontWeight =
-                            FontWeight.Bold
-                    )
-                }
-            }
-
-            Spacer(
-                Modifier.height(20.dp)
-            )
-
-            Button(
-
-                onClick = onPlay,
-
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .height(58.dp),
-
-                shape =
-                    RoundedCornerShape(16.dp)
+                horizontalAlignment =
+                    Alignment.CenterHorizontally
             ) {
 
                 Text(
-                    "🎮 PLAY GAME",
-                    fontSize = 20.sp,
+                    text = "💰 WALLET",
+                    color = Color.LightGray
+                )
+
+                Text(
+                    text = "₹$walletBalance",
+                    color = Color(0xFFFFD54F),
+                    fontSize = 30.sp,
                     fontWeight =
                         FontWeight.Bold
                 )
             }
+        }
 
-            Spacer(
-                Modifier.height(10.dp)
+        Spacer(
+            modifier =
+                Modifier.height(20.dp)
+        )
+
+        Button(
+
+            onClick = onPlay,
+
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(58.dp),
+
+            shape =
+                RoundedCornerShape(16.dp)
+        ) {
+
+            Text(
+                text = "🎮 PLAY GAME",
+                fontSize = 20.sp,
+                fontWeight =
+                    FontWeight.Bold
             )
+        }
 
-            Row(
-                modifier =
-                    Modifier.fillMaxWidth(),
-
-                horizontalArrangement =
-                    Arrangement.spacedBy(10.dp)
-            ) {
-
-                MenuButton(
-                    "📋 TASK",
-                    Modifier.weight(1f),
-                    onTask
-                )
-
-                MenuButton(
-                    "💸 WITHDRAW",
-                    Modifier.weight(1f),
-                    onWithdrawal
-                )
-            }
-
-            Spacer(
+        Spacer(
+            modifier =
                 Modifier.height(10.dp)
-            )
+        )
+
+        Row(
+
+            modifier =
+                Modifier.fillMaxWidth(),
+
+            horizontalArrangement =
+                Arrangement.spacedBy(10.dp)
+        ) {
 
             Button(
 
-                onClick = onSettings,
+                onClick = onTask,
 
                 modifier =
-                    Modifier.fillMaxWidth(),
-
-                shape =
-                    RoundedCornerShape(14.dp)
+                    Modifier.weight(1f)
             ) {
 
-                Text(
-                    "⚙️ SETTINGS",
-                    fontSize = 16.sp
-                )
+                Text("📋 TASK")
             }
 
-            Spacer(
-                Modifier.height(18.dp)
-            )
+            Button(
 
-            Text(
-                "Complete levels and earn rewards",
-                color = Color.Gray,
-                fontSize = 12.sp
-            )
+                onClick = onWithdrawal,
+
+                modifier =
+                    Modifier.weight(1f)
+            ) {
+
+                Text("💸 WITHDRAW")
+            }
         }
-    }
-}
 
+        Spacer(
+            modifier =
+                Modifier.height(10.dp)
+        )
 
-/*
- * ============================================================
- * MENU BUTTON
- * ============================================================
- */
+        Button(
 
-@Composable
-private fun MenuButton(
+            onClick = onSettings,
 
-    text: String,
+            modifier =
+                Modifier.fillMaxWidth()
+        ) {
 
-    modifier: Modifier,
+            Text("⚙️ SETTINGS")
+        }
 
-    onClick: () -> Unit
-
-) {
-
-    Button(
-
-        onClick = onClick,
-
-        modifier = modifier,
-
-        shape =
-            RoundedCornerShape(14.dp)
-    ) {
+        Spacer(
+            modifier =
+                Modifier.height(20.dp)
+        )
 
         Text(
-            text,
-            fontSize = 13.sp
+            text =
+                "Complete levels and earn rewards",
+            color = Color.Gray,
+            fontSize = 12.sp
         )
     }
 }
 
-
 /*
  * ============================================================
- * LEVEL MAP
+ * LEVEL MAP - 1000 LEVELS
  * ============================================================
  */
 
@@ -828,8 +610,7 @@ private fun LevelMapScreen(
 
     onBack: () -> Unit,
 
-    onLevelSelected:
-        (Int) -> Unit
+    onLevelSelected: (Int) -> Unit
 
 ) {
 
@@ -862,11 +643,12 @@ private fun LevelMapScreen(
             }
 
             Spacer(
-                Modifier.width(12.dp)
+                modifier =
+                    Modifier.width(12.dp)
             )
 
             Text(
-                "🍬 LEVELS",
+                text = "🍬 LEVELS",
                 color = Color.White,
                 fontSize = 25.sp,
                 fontWeight =
@@ -874,20 +656,17 @@ private fun LevelMapScreen(
             )
         }
 
-        HorizontalDivider()
-
         Text(
-            "Unlocked: $highestLevel / 1000",
+            text =
+                "Unlocked: $highestLevel / 1000",
 
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .padding(12.dp),
+                    .padding(10.dp),
 
             color =
                 Color(0xFFFFD54F),
-
-            fontSize = 17.sp,
 
             textAlign =
                 TextAlign.Center
@@ -927,10 +706,7 @@ private fun LevelMapScreen(
                     onClick = {
 
                         if (unlocked) {
-
-                            onLevelSelected(
-                                level
-                            )
+                            onLevelSelected(level)
                         }
                     }
                 )
@@ -938,7 +714,6 @@ private fun LevelMapScreen(
         }
     }
 }
-
 
 /*
  * ============================================================
@@ -981,21 +756,26 @@ private fun LevelButton(
     ) {
 
         Column(
+
             horizontalAlignment =
                 Alignment.CenterHorizontally
         ) {
 
             Text(
-                if (unlocked)
-                    "🍬"
-                else
-                    "🔒",
+
+                text =
+                    if (unlocked)
+                        "🍬"
+                    else
+                        "🔒",
 
                 fontSize = 20.sp
             )
 
             Text(
-                level.toString(),
+
+                text =
+                    level.toString(),
 
                 color =
                     if (unlocked)
@@ -1009,7 +789,6 @@ private fun LevelButton(
         }
     }
 }
-
 
 /*
  * ============================================================
@@ -1034,120 +813,89 @@ private fun WithdrawalScreen(
                 .background(
                     Color(0xFF101820)
                 )
-                .padding(20.dp),
-
-        horizontalAlignment =
-            Alignment.CenterHorizontally
+                .padding(20.dp)
     ) {
 
-        Row(
-            modifier =
-                Modifier.fillMaxWidth(),
-
-            verticalAlignment =
-                Alignment.CenterVertically
+        Button(
+            onClick = onBack
         ) {
 
-            Button(
-                onClick = onBack
-            ) {
-                Text("←")
-            }
-
-            Spacer(
-                Modifier.width(12.dp)
-            )
-
-            Text(
-                "💸 WITHDRAW",
-                color = Color.White,
-                fontSize = 24.sp,
-                fontWeight =
-                    FontWeight.Bold
-            )
+            Text("← Back")
         }
 
         Spacer(
-            Modifier.height(40.dp)
+            modifier =
+                Modifier.height(30.dp)
         )
 
-        Card(
+        Text(
+            text = "💸 WITHDRAW",
+            color = Color.White,
+            fontSize = 28.sp,
+            fontWeight =
+                FontWeight.Bold
+        )
+
+        Spacer(
+            modifier =
+                Modifier.height(20.dp)
+        )
+
+        Text(
+            text = "Wallet Balance",
+            color = Color.Gray
+        )
+
+        Text(
+            text = "₹$balance",
+            color = Color(0xFFFFD54F),
+            fontSize = 32.sp,
+            fontWeight =
+                FontWeight.Bold
+        )
+
+        Spacer(
+            modifier =
+                Modifier.height(20.dp)
+        )
+
+        OutlinedTextField(
+            value = "",
+            onValueChange = {},
+            label = {
+                Text("UPI ID")
+            },
+            modifier =
+                Modifier.fillMaxWidth()
+        )
+
+        Spacer(
+            modifier =
+                Modifier.height(15.dp)
+        )
+
+        Button(
+
+            onClick = {
+                // Withdrawal backend next step
+            },
+
             modifier =
                 Modifier.fillMaxWidth(),
 
-            shape =
-                RoundedCornerShape(20.dp),
-
-            colors =
-                CardDefaults.cardColors(
-                    containerColor =
-                        Color(0xFF263238)
-                )
+            enabled =
+                balance >= 25
         ) {
 
-            Column(
-                modifier =
-                    Modifier.padding(24.dp),
-
-                horizontalAlignment =
-                    Alignment.CenterHorizontally
-            ) {
-
-                Text(
-                    "Available Balance",
-                    color =
-                        Color.LightGray
-                )
-
-                Text(
-                    "₹$balance",
-                    color =
-                        Color(0xFFFFD54F),
-
-                    fontSize = 34.sp,
-
-                    fontWeight =
-                        FontWeight.Bold
-                )
-
-                Spacer(
-                    Modifier.height(20.dp)
-                )
-
-                Text(
-                    "UPI withdrawal will be available here.",
-                    color =
-                        Color.Gray,
-
-                    textAlign =
-                        TextAlign.Center
-                )
-
-                Spacer(
-                    Modifier.height(20.dp)
-                )
-
-                Button(
-                    onClick = {
-
-                        // Withdrawal backend
-                        // next step mein connect hoga.
-
-                    },
-
-                    modifier =
-                        Modifier.fillMaxWidth()
-                ) {
-
-                    Text(
-                        "REQUEST WITHDRAWAL"
-                    )
-                }
-            }
+            Text(
+                if (balance >= 25)
+                    "REQUEST WITHDRAWAL"
+                else
+                    "Minimum ₹25 required"
+            )
         }
     }
 }
-
 
 /*
  * ============================================================
@@ -1157,120 +905,5 @@ private fun WithdrawalScreen(
 
 @Composable
 private fun TaskScreen(
-    onBack: () -> Unit
-) {
 
-    Column(
-
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .background(
-                    Color(0xFF101820)
-                )
-                .padding(20.dp),
-
-        horizontalAlignment =
-            Alignment.CenterHorizontally
-    ) {
-
-        Row(
-            modifier =
-                Modifier.fillMaxWidth(),
-
-            verticalAlignment =
-                Alignment.CenterVertically
-        ) {
-
-            Button(
-                onClick = onBack
-            ) {
-                Text("←")
-            }
-
-            Spacer(
-                Modifier.width(12.dp)
-            )
-
-            Text(
-                "📋 TASKS",
-                color = Color.White,
-                fontSize = 24.sp,
-                fontWeight =
-                    FontWeight.Bold
-            )
-        }
-
-        Spacer(
-            Modifier.height(30.dp)
-        )
-
-        Card(
-
-            modifier =
-                Modifier.fillMaxWidth(),
-
-            shape =
-                RoundedCornerShape(18.dp),
-
-            colors =
-                CardDefaults.cardColors(
-                    containerColor =
-                        Color(0xFF263238)
-                )
-        ) {
-
-            Column(
-                modifier =
-                    Modifier.padding(22.dp),
-
-                horizontalAlignment =
-                    Alignment.CenterHorizontally
-            ) {
-
-                Text(
-                    "🎁 Daily Task",
-                    color =
-                        Color(0xFFFFD54F),
-
-                    fontSize = 22.sp,
-
-                    fontWeight =
-                        FontWeight.Bold
-                )
-
-                Spacer(
-                    Modifier.height(12.dp)
-                )
-
-                Text(
-                    "Complete game levels to earn rewards.",
-                    color =
-                        Color.LightGray,
-
-                    textAlign =
-                        TextAlign.Center
-                )
-
-                Spacer(
-                    Modifier.height(20.dp)
-                )
-
-                Button(
-                    onClick = {
-
-                        // Task action
-                    },
-
-                    modifier =
-                        Modifier.fillMaxWidth()
-                ) {
-
-                    Text(
-                        "START TASK"
-                    )
-                }
-            }
-        }
-    }
-}
+    onBack: () ->
