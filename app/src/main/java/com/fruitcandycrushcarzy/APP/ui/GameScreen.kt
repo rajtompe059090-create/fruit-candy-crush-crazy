@@ -43,6 +43,7 @@ import kotlin.math.abs
 fun GameScreen(
     viewModel: GameViewModel
 ) {
+
     val state by viewModel.uiState.collectAsState()
 
     Box(
@@ -62,6 +63,10 @@ fun GameScreen(
                 ),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+
+            // =====================================================
+            // TOP BAR
+            // =====================================================
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -87,6 +92,10 @@ fun GameScreen(
             Spacer(
                 modifier = Modifier.height(5.dp)
             )
+
+            // =====================================================
+            // GAME INFO
+            // =====================================================
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -128,6 +137,10 @@ fun GameScreen(
                 modifier = Modifier.height(4.dp)
             )
 
+            // =====================================================
+            // GAME BOARD
+            // =====================================================
+
             GameBoard(
                 grid = state.grid,
                 selectedPosition = state.selectedPosition,
@@ -136,6 +149,7 @@ fun GameScreen(
                     !state.isStarting &&
                     !state.isLevelUp,
                 onSwipe = { position, direction ->
+
                     viewModel.onSwipe(
                         position,
                         direction
@@ -147,6 +161,10 @@ fun GameScreen(
                 modifier = Modifier.height(5.dp)
             )
 
+            // =====================================================
+            // WALLET
+            // =====================================================
+
             Text(
                 text = "💰 ₹${state.walletBalance}",
                 color = Color(0xFFFFD54F),
@@ -157,25 +175,16 @@ fun GameScreen(
                 modifier = Modifier.height(4.dp)
             )
 
+            // =====================================================
+            // BUTTONS
+            // Shuffle removed
+            // =====================================================
+
             Row(
                 horizontalArrangement = Arrangement.Center
             ) {
 
-                Button(
-                    onClick = {
-                        viewModel.shuffleBoard()
-                    },
-                    enabled =
-                        !state.isProcessing &&
-                        !state.isLevelUp
-                ) {
-                    Text("🔀")
-                }
-
-                Spacer(
-                    modifier = Modifier.width(5.dp)
-                )
-
+                // REWARDED +5
                 Button(
                     onClick = {
                         viewModel.requestRewardedAd()
@@ -184,19 +193,23 @@ fun GameScreen(
                         !state.isProcessing &&
                         !state.isLevelUp
                 ) {
+
                     Text("🎁 +5")
                 }
 
                 Spacer(
-                    modifier = Modifier.width(5.dp)
+                    modifier = Modifier.width(8.dp)
                 )
 
+                // RESET
                 Button(
                     onClick = {
                         viewModel.resetGame()
-                    }
+                    },
+                    enabled = !state.isProcessing
                 ) {
-                    Text("🔄")
+
+                    Text("🔄 RESET")
                 }
             }
 
@@ -211,11 +224,9 @@ fun GameScreen(
             )
         }
 
-        /*
-         * =====================================================
-         * BANNER ADMOB
-         * =====================================================
-         */
+        // =========================================================
+        // BANNER ADMOB
+        // =========================================================
 
         Box(
             modifier = Modifier
@@ -246,25 +257,13 @@ fun GameScreen(
                             AdRequest.Builder().build()
                         )
                     }
-                },
-
-                update = { adView ->
-
-                    if (adView.adSize == null) {
-
-                        adView.setAdSize(
-                            AdSize.BANNER
-                        )
-                    }
                 }
             )
         }
 
-        /*
-         * =====================================================
-         * STARTING SCREEN
-         * =====================================================
-         */
+        // =========================================================
+        // STARTING SCREEN
+        // =========================================================
 
         if (state.isStarting) {
 
@@ -285,11 +284,9 @@ fun GameScreen(
             }
         }
 
-        /*
-         * =====================================================
-         * LEVEL UP
-         * =====================================================
-         */
+        // =========================================================
+        // LEVEL UP
+        // =========================================================
 
         if (state.isLevelUp) {
 
@@ -328,11 +325,9 @@ fun GameScreen(
             }
         }
 
-        /*
-         * =====================================================
-         * SETTINGS
-         * =====================================================
-         */
+        // =========================================================
+        // SETTINGS
+        // =========================================================
 
         if (state.showSettings) {
 
@@ -366,12 +361,9 @@ fun GameScreen(
     }
 }
 
-
-/*
- * =========================================================
- * SMALL INFO CARD
- * =========================================================
- */
+// =========================================================
+// SMALL INFO
+// =========================================================
 
 @Composable
 private fun SmallInfo(
@@ -410,12 +402,9 @@ private fun SmallInfo(
     }
 }
 
-
-/*
- * =========================================================
- * GAME BOARD
- * =========================================================
- */
+// =========================================================
+// GAME BOARD
+// =========================================================
 
 @Composable
 private fun GameBoard(
@@ -469,12 +458,9 @@ private fun GameBoard(
     }
 }
 
-
-/*
- * =========================================================
- * FRUIT CELL
- * =========================================================
- */
+// =========================================================
+// FRUIT CELL
+// =========================================================
 
 @Composable
 private fun FruitCell(
@@ -486,32 +472,16 @@ private fun FruitCell(
 
     val fruitText = when (fruit?.type) {
 
-        FruitType.APPLE ->
-            "🍎"
+        FruitType.APPLE -> "🍎"
+        FruitType.ORANGE -> "🍊"
+        FruitType.GRAPE -> "🍇"
+        FruitType.STRAWBERRY -> "🍓"
+        FruitType.BANANA -> "🍌"
+        FruitType.KIWI -> "🥝"
+        FruitType.PEACH -> "🍑"
+        FruitType.CHERRY -> "🍒"
 
-        FruitType.ORANGE ->
-            "🍊"
-
-        FruitType.GRAPE ->
-            "🍇"
-
-        FruitType.STRAWBERRY ->
-            "🍓"
-
-        FruitType.BANANA ->
-            "🍌"
-
-        FruitType.KIWI ->
-            "🥝"
-
-        FruitType.PEACH ->
-            "🍑"
-
-        FruitType.CHERRY ->
-            "🍒"
-
-        null ->
-            "❔"
+        null -> "❔"
     }
 
     Box(
@@ -536,7 +506,6 @@ private fun FruitCell(
                     detectDragGestures(
 
                         onDragStart = {
-
                             totalX = 0f
                             totalY = 0f
                         },
@@ -556,8 +525,7 @@ private fun FruitCell(
 
                         onDragEnd = {
 
-                            val minimumSwipe =
-                                12f
+                            val minimumSwipe = 12f
 
                             if (
                                 abs(totalX) >=
@@ -571,9 +539,7 @@ private fun FruitCell(
                                     abs(totalY)
                                 ) {
 
-                                    if (
-                                        totalX > 0
-                                    ) {
+                                    if (totalX > 0) {
 
                                         onSwipe(
                                             DragDirection.RIGHT
@@ -588,9 +554,7 @@ private fun FruitCell(
 
                                 } else {
 
-                                    if (
-                                        totalY > 0
-                                    ) {
+                                    if (totalY > 0) {
 
                                         onSwipe(
                                             DragDirection.DOWN
@@ -607,7 +571,6 @@ private fun FruitCell(
                         },
 
                         onDragCancel = {
-
                             totalX = 0f
                             totalY = 0f
                         }
@@ -626,12 +589,9 @@ private fun FruitCell(
     }
 }
 
-
-/*
- * =========================================================
- * SETTINGS PANEL
- * =========================================================
- */
+// =========================================================
+// SETTINGS PANEL
+// =========================================================
 
 @Composable
 private fun SettingsPanel(
@@ -716,12 +676,9 @@ private fun SettingsPanel(
     }
 }
 
-
-/*
- * =========================================================
- * SETTING ROW
- * =========================================================
- */
+// =========================================================
+// SETTING ROW
+// =========================================================
 
 @Composable
 private fun SettingRow(
