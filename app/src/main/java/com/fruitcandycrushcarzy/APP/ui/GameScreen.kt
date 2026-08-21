@@ -20,8 +20,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -38,12 +40,36 @@ import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
 import kotlin.math.abs
+import kotlinx.coroutines.delay
 
 @Composable
 fun GameScreen(
     viewModel: GameViewModel
 ) {
     val state by viewModel.uiState.collectAsState()
+
+    /*
+     * =====================================================
+     * BANNER RELOAD KEY
+     * =====================================================
+     *
+     * Har 60 seconds mein key change hogi.
+     * Isse TOP aur BOTTOM dono AdView reload honge.
+     */
+
+    var adReloadKey = remember {
+        androidx.compose.runtime.mutableIntStateOf(0)
+    }
+
+    LaunchedEffect(Unit) {
+
+        while (true) {
+
+            delay(60_000)
+
+            adReloadKey.intValue++
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -54,209 +80,225 @@ fun GameScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(
-                    start = 8.dp,
-                    top = 8.dp,
-                    end = 8.dp,
-                    bottom = 60.dp
-                ),
-            horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            /*
+             * =================================================
+             * TOP BANNER
+             * =================================================
+             */
+
+            BannerAd(
+                reloadKey = adReloadKey.intValue
+            )
+
+            /*
+             * =================================================
+             * GAME AREA
+             * =================================================
+             */
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(
+                        start = 8.dp,
+                        end = 8.dp,
+                        top = 5.dp,
+                        bottom = 5.dp
+                    ),
+                horizontalAlignment =
+                    Alignment.CenterHorizontally
             ) {
 
-                Text(
-                    text = "🍓 Fruit Crush",
-                    color = Color.White,
-                    fontSize = 23.sp
-                )
+                /*
+                 * HEADER
+                 */
 
-                Button(
-                    onClick = {
-                        viewModel.toggleSettings()
-                    }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement =
+                        Arrangement.SpaceBetween,
+                    verticalAlignment =
+                        Alignment.CenterVertically
                 ) {
-                    Text("⚙️")
+
+                    Text(
+                        text = "🍓 Fruit Crush",
+                        color = Color.White,
+                        fontSize = 23.sp
+                    )
+
+                    Button(
+                        onClick = {
+                            viewModel.toggleSettings()
+                        }
+                    ) {
+                        Text("⚙️")
+                    }
                 }
-            }
 
-            Spacer(
-                modifier = Modifier.height(5.dp)
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-
-                SmallInfo(
-                    title = "LVL",
-                    value = state.level.toString()
+                Spacer(
+                    modifier = Modifier.height(4.dp)
                 )
 
-                SmallInfo(
-                    title = "SCORE",
-                    value = state.score.toString()
-                )
+                /*
+                 * INFO
+                 */
 
-                SmallInfo(
-                    title = "MOVES",
-                    value = state.movesLeft.toString()
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement =
+                        Arrangement.SpaceEvenly
+                ) {
 
-                SmallInfo(
-                    title = "TIME",
-                    value = state.timeLeftSeconds.toString()
-                )
-            }
+                    SmallInfo(
+                        title = "LVL",
+                        value = state.level.toString()
+                    )
 
-            Spacer(
-                modifier = Modifier.height(5.dp)
-            )
+                    SmallInfo(
+                        title = "SCORE",
+                        value = state.score.toString()
+                    )
 
-            Text(
-                text = "TARGET ${state.targetScore}",
-                color = Color(0xFFFFD54F),
-                fontSize = 14.sp
-            )
+                    SmallInfo(
+                        title = "MOVES",
+                        value = state.movesLeft.toString()
+                    )
 
-            Spacer(
-                modifier = Modifier.height(4.dp)
-            )
-
-            GameBoard(
-                grid = state.grid,
-                selectedPosition = state.selectedPosition,
-                enabled =
-                    !state.isProcessing &&
-                    !state.isStarting &&
-                    !state.isLevelUp,
-                onSwipe = { position, direction ->
-                    viewModel.onSwipe(
-                        position,
-                        direction
+                    SmallInfo(
+                        title = "TIME",
+                        value =
+                            state.timeLeftSeconds.toString()
                     )
                 }
-            )
-
-            Spacer(
-                modifier = Modifier.height(5.dp)
-            )
-
-            Text(
-                text = "💰 ₹${state.walletBalance}",
-                color = Color(0xFFFFD54F),
-                fontSize = 20.sp
-            )
-
-            Spacer(
-                modifier = Modifier.height(4.dp)
-            )
-
-            Row(
-                horizontalArrangement = Arrangement.Center
-            ) {
-
-                Button(
-                    onClick = {
-                        viewModel.shuffleBoard()
-                    },
-                    enabled =
-                        !state.isProcessing &&
-                        !state.isLevelUp
-                ) {
-                    Text("🔀")
-                }
 
                 Spacer(
-                    modifier = Modifier.width(5.dp)
+                    modifier = Modifier.height(4.dp)
                 )
 
-                Button(
-                    onClick = {
-                        viewModel.requestRewardedAd()
-                    },
-                    enabled =
-                        !state.isProcessing &&
-                        !state.isLevelUp
-                ) {
-                    Text("🎁 +5")
-                }
+                Text(
+                    text =
+                        "TARGET ${state.targetScore}",
+                    color =
+                        Color(0xFFFFD54F),
+                    fontSize = 14.sp
+                )
 
                 Spacer(
-                    modifier = Modifier.width(5.dp)
+                    modifier = Modifier.height(3.dp)
                 )
 
-                Button(
-                    onClick = {
-                        viewModel.resetGame()
+                /*
+                 * GAME BOARD
+                 */
+
+                GameBoard(
+                    grid = state.grid,
+                    selectedPosition =
+                        state.selectedPosition,
+                    enabled =
+                        !state.isProcessing &&
+                        !state.isStarting &&
+                        !state.isLevelUp,
+                    onSwipe = { position, direction ->
+
+                        viewModel.onSwipe(
+                            position,
+                            direction
+                        )
                     }
+                )
+
+                Spacer(
+                    modifier = Modifier.height(4.dp)
+                )
+
+                /*
+                 * WALLET
+                 */
+
+                Text(
+                    text =
+                        "💰 ₹${state.walletBalance}",
+                    color =
+                        Color(0xFFFFD54F),
+                    fontSize = 20.sp
+                )
+
+                Spacer(
+                    modifier = Modifier.height(3.dp)
+                )
+
+                /*
+                 * GAME BUTTONS
+                 */
+
+                Row(
+                    horizontalArrangement =
+                        Arrangement.Center
                 ) {
-                    Text("🔄")
+
+                    Button(
+                        onClick = {
+                            viewModel.shuffleBoard()
+                        },
+                        enabled =
+                            !state.isProcessing &&
+                            !state.isLevelUp
+                    ) {
+                        Text("🔀")
+                    }
+
+                    Spacer(
+                        modifier = Modifier.width(5.dp)
+                    )
+
+                    Button(
+                        onClick = {
+                            viewModel.requestRewardedAd()
+                        },
+                        enabled =
+                            !state.isProcessing &&
+                            !state.isLevelUp
+                    ) {
+                        Text("🎁 +10")
+                    }
+
+                    Spacer(
+                        modifier = Modifier.width(5.dp)
+                    )
+
+                    Button(
+                        onClick = {
+                            viewModel.resetGame()
+                        }
+                    ) {
+                        Text("🔄")
+                    }
                 }
+
+                Spacer(
+                    modifier = Modifier.height(2.dp)
+                )
+
+                Text(
+                    text = "👉 Swipe a fruit",
+                    color = Color.LightGray,
+                    fontSize = 11.sp
+                )
             }
 
-            Spacer(
-                modifier = Modifier.height(3.dp)
-            )
+            /*
+             * =================================================
+             * BOTTOM BANNER
+             * =================================================
+             */
 
-            Text(
-                text = "👉 Swipe a fruit",
-                color = Color.LightGray,
-                fontSize = 11.sp
-            )
-        }
-
-        /*
-         * =====================================================
-         * BANNER ADMOB
-         * =====================================================
-         */
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(60.dp)
-                .align(Alignment.BottomCenter)
-                .background(Color.Black),
-            contentAlignment = Alignment.Center
-        ) {
-
-            AndroidView(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-
-                factory = { context ->
-
-                    AdView(context).also { adView ->
-
-                        adView.setAdSize(
-                            AdSize.BANNER
-                        )
-
-                        adView.adUnitId =
-                            "ca-app-pub-6146868530948467/2054244812"
-
-                        adView.loadAd(
-                            AdRequest.Builder().build()
-                        )
-                    }
-                },
-
-                update = { adView ->
-
-                    if (adView.adSize == null) {
-
-                        adView.setAdSize(
-                            AdSize.BANNER
-                        )
-                    }
-                }
+            BannerAd(
+                reloadKey = adReloadKey.intValue
             )
         }
 
@@ -274,12 +316,15 @@ fun GameScreen(
                     .background(
                         Color(0xDD000000)
                     ),
-                contentAlignment = Alignment.Center
+                contentAlignment =
+                    Alignment.Center
             ) {
 
                 Text(
-                    text = "🍓 GET READY! 🍬",
-                    color = Color.White,
+                    text =
+                        "🍓 GET READY! 🍬",
+                    color =
+                        Color.White,
                     fontSize = 28.sp
                 )
             }
@@ -299,7 +344,8 @@ fun GameScreen(
                     .background(
                         Color(0xDD000000)
                     ),
-                contentAlignment = Alignment.Center
+                contentAlignment =
+                    Alignment.Center
             ) {
 
                 Column(
@@ -308,13 +354,16 @@ fun GameScreen(
                 ) {
 
                     Text(
-                        text = "🎉 LEVEL UP! 🎉",
-                        color = Color.White,
+                        text =
+                            "🎉 LEVEL UP! 🎉",
+                        color =
+                            Color.White,
                         fontSize = 30.sp
                     )
 
                     Spacer(
-                        modifier = Modifier.height(10.dp)
+                        modifier =
+                            Modifier.height(10.dp)
                     )
 
                     Text(
@@ -368,6 +417,61 @@ fun GameScreen(
 
 /*
  * =========================================================
+ * BANNER AD
+ * =========================================================
+ */
+
+@Composable
+private fun BannerAd(
+    reloadKey: Int
+) {
+
+    AndroidView(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(60.dp)
+            .background(Color.Black),
+
+        factory = { context ->
+
+            AdView(context).apply {
+
+                setAdSize(
+                    AdSize.BANNER
+                )
+
+                /*
+                 * Tumhara AdMob Banner ID
+                 */
+
+                adUnitId =
+                    "ca-app-pub-6146868530948467/2054244812"
+
+                loadAd(
+                    AdRequest.Builder().build()
+                )
+            }
+        },
+
+        update = { adView ->
+
+            /*
+             * 60 second reload
+             */
+
+            if (reloadKey >= 0) {
+
+                adView.loadAd(
+                    AdRequest.Builder().build()
+                )
+            }
+        }
+    )
+}
+
+
+/*
+ * =========================================================
  * SMALL INFO CARD
  * =========================================================
  */
@@ -383,11 +487,13 @@ private fun SmallInfo(
             .width(78.dp)
             .height(48.dp),
 
-        shape = RoundedCornerShape(10.dp)
+        shape =
+            RoundedCornerShape(10.dp)
     ) {
 
         Column(
-            modifier = Modifier.fillMaxSize(),
+            modifier =
+                Modifier.fillMaxSize(),
 
             horizontalAlignment =
                 Alignment.CenterHorizontally,
@@ -483,35 +589,36 @@ private fun FruitCell(
     onSwipe: (DragDirection) -> Unit
 ) {
 
-    val fruitText = when (fruit?.type) {
+    val fruitText =
+        when (fruit?.type) {
 
-        FruitType.APPLE ->
-            "🍎"
+            FruitType.APPLE ->
+                "🍎"
 
-        FruitType.ORANGE ->
-            "🍊"
+            FruitType.ORANGE ->
+                "🍊"
 
-        FruitType.GRAPE ->
-            "🍇"
+            FruitType.GRAPE ->
+                "🍇"
 
-        FruitType.STRAWBERRY ->
-            "🍓"
+            FruitType.STRAWBERRY ->
+                "🍓"
 
-        FruitType.BANANA ->
-            "🍌"
+            FruitType.BANANA ->
+                "🍌"
 
-        FruitType.KIWI ->
-            "🥝"
+            FruitType.KIWI ->
+                "🥝"
 
-        FruitType.PEACH ->
-            "🍑"
+            FruitType.PEACH ->
+                "🍑"
 
-        FruitType.CHERRY ->
-            "🍒"
+            FruitType.CHERRY ->
+                "🍒"
 
-        null ->
-            "❔"
-    }
+            null ->
+                "❔"
+        }
 
     Box(
         modifier = Modifier
@@ -570,9 +677,7 @@ private fun FruitCell(
                                     abs(totalY)
                                 ) {
 
-                                    if (
-                                        totalX > 0
-                                    ) {
+                                    if (totalX > 0) {
 
                                         onSwipe(
                                             DragDirection.RIGHT
@@ -587,9 +692,7 @@ private fun FruitCell(
 
                                 } else {
 
-                                    if (
-                                        totalY > 0
-                                    ) {
+                                    if (totalY > 0) {
 
                                         onSwipe(
                                             DragDirection.DOWN
@@ -673,7 +776,8 @@ private fun SettingsPanel(
                 )
 
                 Spacer(
-                    modifier = Modifier.height(15.dp)
+                    modifier =
+                        Modifier.height(15.dp)
                 )
 
                 SettingRow(
@@ -699,7 +803,8 @@ private fun SettingsPanel(
                 )
 
                 Spacer(
-                    modifier = Modifier.height(20.dp)
+                    modifier =
+                        Modifier.height(20.dp)
                 )
 
                 Button(
@@ -732,7 +837,9 @@ private fun SettingRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 10.dp),
+            .padding(
+                vertical = 10.dp
+            ),
 
         horizontalArrangement =
             Arrangement.SpaceBetween,
