@@ -17,11 +17,6 @@ val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
     name = "game_scores"
 )
 
-/*
- * TRANSACTION MODEL
- *
- * Wallet ki earning history ke liye.
- */
 data class Transaction(
     val id: Long,
     val type: String,
@@ -31,7 +26,7 @@ data class Transaction(
 )
 
 class ScoreRepository(
-    private val context: Context
+    val context: Context
 ) {
 
     private val HIGH_SCORE_KEY =
@@ -59,9 +54,9 @@ class ScoreRepository(
         stringPreferencesKey("transactions")
 
 
-    // ------------------------------------------------
+    // =========================================================
     // HIGH SCORE
-    // ------------------------------------------------
+    // =========================================================
 
     val highScoreFlow: Flow<Int> =
         context.dataStore.data.map { preferences ->
@@ -69,9 +64,9 @@ class ScoreRepository(
         }
 
 
-    // ------------------------------------------------
+    // =========================================================
     // SOUND
-    // ------------------------------------------------
+    // =========================================================
 
     val soundEnabledFlow: Flow<Boolean> =
         context.dataStore.data.map { preferences ->
@@ -79,9 +74,9 @@ class ScoreRepository(
         }
 
 
-    // ------------------------------------------------
+    // =========================================================
     // MUSIC
-    // ------------------------------------------------
+    // =========================================================
 
     val musicEnabledFlow: Flow<Boolean> =
         context.dataStore.data.map { preferences ->
@@ -89,9 +84,9 @@ class ScoreRepository(
         }
 
 
-    // ------------------------------------------------
+    // =========================================================
     // VIBRATION
-    // ------------------------------------------------
+    // =========================================================
 
     val vibrationEnabledFlow: Flow<Boolean> =
         context.dataStore.data.map { preferences ->
@@ -99,9 +94,9 @@ class ScoreRepository(
         }
 
 
-    // ------------------------------------------------
+    // =========================================================
     // RATING
-    // ------------------------------------------------
+    // =========================================================
 
     val hasRatedFlow: Flow<Boolean> =
         context.dataStore.data.map { preferences ->
@@ -109,9 +104,9 @@ class ScoreRepository(
         }
 
 
-    // ------------------------------------------------
+    // =========================================================
     // GAMES PLAYED
-    // ------------------------------------------------
+    // =========================================================
 
     val gamesPlayedFlow: Flow<Int> =
         context.dataStore.data.map { preferences ->
@@ -119,9 +114,9 @@ class ScoreRepository(
         }
 
 
-    // ------------------------------------------------
-    // WALLET BALANCE
-    // ------------------------------------------------
+    // =========================================================
+    // WALLET
+    // =========================================================
 
     val walletBalanceFlow: Flow<Int> =
         context.dataStore.data.map { preferences ->
@@ -129,9 +124,9 @@ class ScoreRepository(
         }
 
 
-    // ------------------------------------------------
-    // TRANSACTION HISTORY
-    // ------------------------------------------------
+    // =========================================================
+    // TRANSACTIONS
+    // =========================================================
 
     val transactionsFlow: Flow<List<Transaction>> =
         context.dataStore.data.map { preferences ->
@@ -143,9 +138,9 @@ class ScoreRepository(
         }
 
 
-    // ------------------------------------------------
+    // =========================================================
     // UPDATE HIGH SCORE
-    // ------------------------------------------------
+    // =========================================================
 
     suspend fun updateHighScore(
         score: Int
@@ -165,9 +160,9 @@ class ScoreRepository(
     }
 
 
-    // ------------------------------------------------
+    // =========================================================
     // GAMES PLAYED
-    // ------------------------------------------------
+    // =========================================================
 
     suspend fun incrementGamesPlayed() {
 
@@ -182,13 +177,15 @@ class ScoreRepository(
     }
 
 
-    // ------------------------------------------------
-    // ADD EARNING + TRANSACTION
-    // ------------------------------------------------
+    // =========================================================
+    // ADD EARNING
+    // =========================================================
 
     suspend fun addEarning(
         amount: Int
     ) {
+
+        if (amount <= 0) return
 
         context.dataStore.edit { preferences ->
 
@@ -243,9 +240,9 @@ class ScoreRepository(
     }
 
 
-    // ------------------------------------------------
-    // SET RATING
-    // ------------------------------------------------
+    // =========================================================
+    // RATING
+    // =========================================================
 
     suspend fun setHasRated(
         rated: Boolean
@@ -259,9 +256,9 @@ class ScoreRepository(
     }
 
 
-    // ------------------------------------------------
+    // =========================================================
     // SOUND
-    // ------------------------------------------------
+    // =========================================================
 
     suspend fun toggleSound(
         enabled: Boolean
@@ -275,9 +272,9 @@ class ScoreRepository(
     }
 
 
-    // ------------------------------------------------
+    // =========================================================
     // MUSIC
-    // ------------------------------------------------
+    // =========================================================
 
     suspend fun toggleMusic(
         enabled: Boolean
@@ -291,9 +288,9 @@ class ScoreRepository(
     }
 
 
-    // ------------------------------------------------
+    // =========================================================
     // VIBRATION
-    // ------------------------------------------------
+    // =========================================================
 
     suspend fun toggleVibration(
         enabled: Boolean
@@ -307,9 +304,9 @@ class ScoreRepository(
     }
 
 
-    // ------------------------------------------------
-    // JSON -> TRANSACTION LIST
-    // ------------------------------------------------
+    // =========================================================
+    // PARSE TRANSACTIONS
+    // =========================================================
 
     private fun parseTransactions(
         jsonString: String
@@ -329,7 +326,6 @@ class ScoreRepository(
 
                 val obj =
                     jsonArray.getJSONObject(i)
-
 
                 result.add(
 
@@ -377,9 +373,9 @@ class ScoreRepository(
     }
 
 
-    // ------------------------------------------------
-    // TRANSACTION LIST -> JSON
-    // ------------------------------------------------
+    // =========================================================
+    // TRANSACTIONS TO JSON
+    // =========================================================
 
     private fun transactionsToJson(
         transactions: List<Transaction>
@@ -388,12 +384,10 @@ class ScoreRepository(
         val jsonArray =
             JSONArray()
 
-
         transactions.forEach { transaction ->
 
             val obj =
                 JSONObject()
-
 
             obj.put(
                 "id",
@@ -420,12 +414,10 @@ class ScoreRepository(
                 transaction.timestamp
             )
 
-
             jsonArray.put(
                 obj
             )
         }
-
 
         return jsonArray.toString()
     }
