@@ -36,7 +36,6 @@ import com.fruitcandycrushcarzy.APP.game.viewmodel.GameViewModel
 import com.fruitcandycrushcarzy.APP.ui.GameScreen
 import com.fruitcandycrushcarzy.APP.ui.theme.FRUITCANDYCRUSHCARZYTheme
 import com.google.android.gms.ads.MobileAds
-import kotlinx.coroutines.delay
 
 private enum class AppPage {
     MENU,
@@ -45,6 +44,16 @@ private enum class AppPage {
     WITHDRAW,
     TASK
 }
+
+/*
+ * Telegram withdrawal account
+ */
+private const val TELEGRAM_USERNAME = "Earning_adda0590"
+
+/*
+ * Minimum withdrawal amount
+ */
+private const val MIN_WITHDRAWAL = 100
 
 class MainActivity : ComponentActivity() {
 
@@ -74,9 +83,7 @@ class MainActivity : ComponentActivity() {
 
                             @Suppress("UNCHECKED_CAST")
 
-                            return GameViewModel(
-                                repository
-                            ) as T
+                            return GameViewModel(repository) as T
                         }
                     }
                 )
@@ -100,9 +107,9 @@ class MainActivity : ComponentActivity() {
                 }
 
                 /*
-                 * =========================================
-                 * UNLOCKED LEVEL
-                 * =========================================
+                 * ========================================================
+                 * LEVEL PROGRESS
+                 * ========================================================
                  */
 
                 val preferences = remember {
@@ -124,9 +131,9 @@ class MainActivity : ComponentActivity() {
                 }
 
                 /*
-                 * =========================================
+                 * ========================================================
                  * GAME EVENTS
-                 * =========================================
+                 * ========================================================
                  */
 
                 LaunchedEffect(Unit) {
@@ -138,15 +145,13 @@ class MainActivity : ComponentActivity() {
                             GameEvent.MATCH -> {
 
                                 if (
-                                    viewModel.uiState.value
-                                        .isSoundEnabled
+                                    viewModel.uiState.value.isSoundEnabled
                                 ) {
                                     soundManager.playMatch()
                                 }
 
                                 if (
-                                    viewModel.uiState.value
-                                        .isVibrationEnabled
+                                    viewModel.uiState.value.isVibrationEnabled
                                 ) {
                                     vibrationManager.vibrate(40)
                                 }
@@ -155,8 +160,7 @@ class MainActivity : ComponentActivity() {
                             GameEvent.SWAP -> {
 
                                 if (
-                                    viewModel.uiState.value
-                                        .isSoundEnabled
+                                    viewModel.uiState.value.isSoundEnabled
                                 ) {
                                     soundManager.playSwap()
                                 }
@@ -165,15 +169,13 @@ class MainActivity : ComponentActivity() {
                             GameEvent.SPECIAL_EXPLOSION -> {
 
                                 if (
-                                    viewModel.uiState.value
-                                        .isSoundEnabled
+                                    viewModel.uiState.value.isSoundEnabled
                                 ) {
                                     soundManager.playExplosion()
                                 }
 
                                 if (
-                                    viewModel.uiState.value
-                                        .isVibrationEnabled
+                                    viewModel.uiState.value.isVibrationEnabled
                                 ) {
                                     vibrationManager.vibrate(100)
                                 }
@@ -182,30 +184,24 @@ class MainActivity : ComponentActivity() {
                             GameEvent.LEVEL_UP -> {
 
                                 if (
-                                    viewModel.uiState.value
-                                        .isSoundEnabled
+                                    viewModel.uiState.value.isSoundEnabled
                                 ) {
                                     soundManager.playLevelUp()
                                 }
 
                                 if (
-                                    viewModel.uiState.value
-                                        .isVibrationEnabled
+                                    viewModel.uiState.value.isVibrationEnabled
                                 ) {
                                     vibrationManager.vibrate(200)
                                 }
 
-                                /*
-                                 * Unlock next level
-                                 */
-
-                                val next =
-                                    (uiState.level + 1)
+                                val nextLevel =
+                                    (viewModel.uiState.value.level + 1)
                                         .coerceAtMost(1000)
 
-                                if (next > highestLevel) {
+                                if (nextLevel > highestLevel) {
 
-                                    highestLevel = next
+                                    highestLevel = nextLevel
 
                                     preferences.edit()
                                         .putInt(
@@ -222,9 +218,7 @@ class MainActivity : ComponentActivity() {
                                     this@MainActivity
                                 ) {
 
-                                    viewModel.grantRewardMoves(
-                                        10
-                                    )
+                                    viewModel.grantRewardMoves(10)
                                 }
                             }
 
@@ -240,9 +234,7 @@ class MainActivity : ComponentActivity() {
 
                                 try {
 
-                                    startActivity(
-                                        marketIntent
-                                    )
+                                    startActivity(marketIntent)
 
                                 } catch (_: Exception) {
 
@@ -263,9 +255,9 @@ class MainActivity : ComponentActivity() {
                 }
 
                 /*
-                 * =========================================
-                 * PAGE
-                 * =========================================
+                 * ========================================================
+                 * PAGE NAVIGATION
+                 * ========================================================
                  */
 
                 when (currentPage) {
@@ -317,19 +309,11 @@ class MainActivity : ComponentActivity() {
 
                             onLevelSelected = { level ->
 
-                                if (
-                                    level <= highestLevel
-                                ) {
+                                if (level <= highestLevel) {
 
                                     currentPage =
                                         AppPage.GAME
 
-                                    /*
-                                     * Reset game for selected level.
-                                     *
-                                     * Current GameViewModel
-                                     * starts from its current level.
-                                     */
                                     viewModel.resetGame()
                                 }
                             }
@@ -357,9 +341,7 @@ class MainActivity : ComponentActivity() {
 
                                 modifier =
                                     Modifier
-                                        .align(
-                                            Alignment.TopStart
-                                        )
+                                        .align(Alignment.TopStart)
                                         .padding(8.dp)
 
                             ) {
@@ -409,27 +391,18 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun MainMenuScreen(
-
     walletBalance: Int,
-
     onPlay: () -> Unit,
-
     onSettings: () -> Unit,
-
     onWithdrawal: () -> Unit,
-
     onTask: () -> Unit
-
 ) {
 
     Column(
-
         modifier =
             Modifier
                 .fillMaxSize()
-                .background(
-                    Color(0xFF101820)
-                )
+                .background(Color(0xFF101820))
                 .padding(22.dp),
 
         horizontalAlignment =
@@ -450,8 +423,7 @@ private fun MainMenuScreen(
             text = "FRUIT CRUSH",
             color = Color.White,
             fontSize = 32.sp,
-            fontWeight =
-                FontWeight.Bold
+            fontWeight = FontWeight.Bold
         )
 
         Text(
@@ -466,7 +438,6 @@ private fun MainMenuScreen(
         )
 
         Card(
-
             modifier =
                 Modifier.fillMaxWidth(),
 
@@ -481,7 +452,6 @@ private fun MainMenuScreen(
         ) {
 
             Column(
-
                 modifier =
                     Modifier.padding(18.dp),
 
@@ -498,8 +468,7 @@ private fun MainMenuScreen(
                     text = "₹$walletBalance",
                     color = Color(0xFFFFD54F),
                     fontSize = 30.sp,
-                    fontWeight =
-                        FontWeight.Bold
+                    fontWeight = FontWeight.Bold
                 )
             }
         }
@@ -510,7 +479,6 @@ private fun MainMenuScreen(
         )
 
         Button(
-
             onClick = onPlay,
 
             modifier =
@@ -525,8 +493,7 @@ private fun MainMenuScreen(
             Text(
                 text = "🎮 PLAY GAME",
                 fontSize = 20.sp,
-                fontWeight =
-                    FontWeight.Bold
+                fontWeight = FontWeight.Bold
             )
         }
 
@@ -536,7 +503,6 @@ private fun MainMenuScreen(
         )
 
         Row(
-
             modifier =
                 Modifier.fillMaxWidth(),
 
@@ -545,7 +511,6 @@ private fun MainMenuScreen(
         ) {
 
             Button(
-
                 onClick = onTask,
 
                 modifier =
@@ -556,7 +521,6 @@ private fun MainMenuScreen(
             }
 
             Button(
-
                 onClick = onWithdrawal,
 
                 modifier =
@@ -573,7 +537,6 @@ private fun MainMenuScreen(
         )
 
         Button(
-
             onClick = onSettings,
 
             modifier =
@@ -591,41 +554,37 @@ private fun MainMenuScreen(
         Text(
             text =
                 "Complete levels and earn rewards",
-            color = Color.Gray,
-            fontSize = 12.sp
+
+            color =
+                Color.Gray,
+
+            fontSize =
+                12.sp
         )
     }
 }
 
 /*
  * ============================================================
- * LEVEL MAP - 1000 LEVELS
+ * LEVEL MAP
  * ============================================================
  */
 
 @Composable
 private fun LevelMapScreen(
-
     highestLevel: Int,
-
     onBack: () -> Unit,
-
     onLevelSelected: (Int) -> Unit
-
 ) {
 
     Column(
-
         modifier =
             Modifier
                 .fillMaxSize()
-                .background(
-                    Color(0xFF101820)
-                )
+                .background(Color(0xFF101820))
     ) {
 
         Row(
-
             modifier =
                 Modifier
                     .fillMaxWidth()
@@ -651,8 +610,7 @@ private fun LevelMapScreen(
                 text = "🍬 LEVELS",
                 color = Color.White,
                 fontSize = 25.sp,
-                fontWeight =
-                    FontWeight.Bold
+                fontWeight = FontWeight.Bold
             )
         }
 
@@ -673,7 +631,6 @@ private fun LevelMapScreen(
         )
 
         LazyVerticalGrid(
-
             columns =
                 GridCells.Fixed(4),
 
@@ -697,11 +654,8 @@ private fun LevelMapScreen(
                     level <= highestLevel
 
                 LevelButton(
-
                     level = level,
-
-                    unlocked =
-                        unlocked,
+                    unlocked = unlocked,
 
                     onClick = {
 
@@ -723,22 +677,16 @@ private fun LevelMapScreen(
 
 @Composable
 private fun LevelButton(
-
     level: Int,
-
     unlocked: Boolean,
-
     onClick: () -> Unit
-
 ) {
 
     Box(
-
         modifier =
             Modifier
                 .size(70.dp)
                 .background(
-
                     if (unlocked)
                         Color(0xFFFFB300)
                     else
@@ -756,24 +704,22 @@ private fun LevelButton(
     ) {
 
         Column(
-
             horizontalAlignment =
                 Alignment.CenterHorizontally
         ) {
 
             Text(
-
                 text =
                     if (unlocked)
                         "🍬"
                     else
                         "🔒",
 
-                fontSize = 20.sp
+                fontSize =
+                    20.sp
             )
 
             Text(
-
                 text =
                     level.toString(),
 
@@ -798,21 +744,21 @@ private fun LevelButton(
 
 @Composable
 private fun WithdrawalScreen(
-
     balance: Int,
-
     onBack: () -> Unit
-
 ) {
 
-    Column(
+    val context = LocalContext.current
 
+    var errorMessage by remember {
+        mutableStateOf("")
+    }
+
+    Column(
         modifier =
             Modifier
                 .fillMaxSize()
-                .background(
-                    Color(0xFF101820)
-                )
+                .background(Color(0xFF101820))
                 .padding(20.dp)
     ) {
 
@@ -832,8 +778,7 @@ private fun WithdrawalScreen(
             text = "💸 WITHDRAW",
             color = Color.White,
             fontSize = 28.sp,
-            fontWeight =
-                FontWeight.Bold
+            fontWeight = FontWeight.Bold
         )
 
         Spacer(
@@ -841,32 +786,65 @@ private fun WithdrawalScreen(
                 Modifier.height(20.dp)
         )
 
-        Text(
-            text = "Wallet Balance",
-            color = Color.Gray
-        )
+        Card(
+            modifier =
+                Modifier.fillMaxWidth(),
 
-        Text(
-            text = "₹$balance",
-            color = Color(0xFFFFD54F),
-            fontSize = 32.sp,
-            fontWeight =
-                FontWeight.Bold
-        )
+            shape =
+                RoundedCornerShape(20.dp),
+
+            colors =
+                CardDefaults.cardColors(
+                    containerColor =
+                        Color(0xFF263238)
+                )
+        ) {
+
+            Column(
+                modifier =
+                    Modifier.padding(20.dp),
+
+                horizontalAlignment =
+                    Alignment.CenterHorizontally
+            ) {
+
+                Text(
+                    text = "WALLET BALANCE",
+                    color = Color.Gray,
+                    fontSize = 13.sp
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(5.dp)
+                )
+
+                Text(
+                    text = "₹$balance",
+                    color = Color(0xFFFFD54F),
+                    fontSize = 38.sp,
+                    fontWeight = FontWeight.Black
+                )
+            }
+        }
 
         Spacer(
             modifier =
                 Modifier.height(20.dp)
         )
 
-        OutlinedTextField(
-            value = "",
-            onValueChange = {},
-            label = {
-                Text("UPI ID")
-            },
-            modifier =
-                Modifier.fillMaxWidth()
+        Text(
+            text =
+                "Minimum withdrawal: ₹$MIN_WITHDRAWAL",
+
+            color =
+                Color.White,
+
+            fontSize =
+                15.sp,
+
+            fontWeight =
+                FontWeight.Bold
         )
 
         Spacer(
@@ -874,26 +852,164 @@ private fun WithdrawalScreen(
                 Modifier.height(15.dp)
         )
 
-        Button(
+        if (balance < MIN_WITHDRAWAL) {
 
+            Text(
+                text =
+                    "❌ Minimum ₹100 balance required for withdrawal.",
+
+                color =
+                    Color.Red,
+
+                fontSize =
+                    14.sp,
+
+                fontWeight =
+                    FontWeight.Bold,
+
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+
+                textAlign =
+                    TextAlign.Center
+            )
+        }
+
+        if (errorMessage.isNotEmpty()) {
+
+            Text(
+                text =
+                    errorMessage,
+
+                color =
+                    Color.Red,
+
+                fontSize =
+                    14.sp,
+
+                fontWeight =
+                    FontWeight.Bold,
+
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+
+                textAlign =
+                    TextAlign.Center
+            )
+        }
+
+        Button(
             onClick = {
-                // Withdrawal backend next step
+
+                if (balance < MIN_WITHDRAWAL) {
+
+                    errorMessage =
+                        "❌ Withdrawal failed: Minimum ₹100 required."
+
+                } else {
+
+                    errorMessage = ""
+
+                    val telegramUrl =
+                        "https://t.me/$TELEGRAM_USERNAME"
+
+                    try {
+
+                        context.startActivity(
+                            Intent(
+                                Intent.ACTION_VIEW,
+                                Uri.parse(telegramUrl)
+                            )
+                        )
+
+                    } catch (_: Exception) {
+
+                        context.startActivity(
+                            Intent(
+                                Intent.ACTION_VIEW,
+                                Uri.parse(
+                                    "https://telegram.me/$TELEGRAM_USERNAME"
+                                )
+                            )
+                        )
+                    }
+                }
             },
+
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(58.dp),
+
+            shape =
+                RoundedCornerShape(16.dp),
+
+            colors =
+                ButtonDefaults.buttonColors(
+                    containerColor =
+                        Color(0xFF2196F3)
+                )
+        ) {
+
+            Text(
+                text =
+                    "💬 CONTACT ON TELEGRAM",
+
+                fontWeight =
+                    FontWeight.Bold,
+
+                fontSize =
+                    16.sp
+            )
+        }
+
+        Spacer(
+            modifier =
+                Modifier.height(15.dp)
+        )
+
+        Text(
+            text =
+                "Telegram: @$TELEGRAM_USERNAME",
+
+            color =
+                Color.LightGray,
+
+            fontSize =
+                13.sp,
 
             modifier =
                 Modifier.fillMaxWidth(),
 
-            enabled =
-                balance >= 25
-        ) {
+            textAlign =
+                TextAlign.Center
+        )
 
-            Text(
-                if (balance >= 25)
-                    "REQUEST WITHDRAWAL"
-                else
-                    "Minimum ₹25 required"
-            )
-        }
+        Spacer(
+            modifier =
+                Modifier.height(8.dp)
+        )
+
+        Text(
+            text =
+                "Withdrawal requests are manually verified.",
+
+            color =
+                Color.Gray,
+
+            fontSize =
+                12.sp,
+
+            textAlign =
+                TextAlign.Center,
+
+            modifier =
+                Modifier.fillMaxWidth()
+        )
     }
 }
 
@@ -905,5 +1021,145 @@ private fun WithdrawalScreen(
 
 @Composable
 private fun TaskScreen(
+    onBack: () -> Unit
+) {
 
-    onBack: () ->
+    Column(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(Color(0xFF101820))
+                .padding(20.dp),
+
+        horizontalAlignment =
+            Alignment.CenterHorizontally
+    ) {
+
+        Row(
+            modifier =
+                Modifier.fillMaxWidth(),
+
+            verticalAlignment =
+                Alignment.CenterVertically
+        ) {
+
+            Button(
+                onClick = onBack
+            ) {
+
+                Text("← Back")
+            }
+
+            Spacer(
+                modifier =
+                    Modifier.width(12.dp)
+            )
+
+            Text(
+                text = "📋 TASK",
+                color = Color.White,
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        Spacer(
+            modifier =
+                Modifier.height(40.dp)
+        )
+
+        Card(
+            modifier =
+                Modifier.fillMaxWidth(),
+
+            shape =
+                RoundedCornerShape(24.dp),
+
+            colors =
+                CardDefaults.cardColors(
+                    containerColor =
+                        Color(0xFF263238)
+                )
+        ) {
+
+            Column(
+                modifier =
+                    Modifier.padding(24.dp),
+
+                horizontalAlignment =
+                    Alignment.CenterHorizontally
+            ) {
+
+                Text(
+                    text = "🎯 COMPLETE TASKS",
+                    color = Color.White,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(15.dp)
+                )
+
+                Text(
+                    text =
+                        "Complete available tasks and earn rewards.",
+
+                    color =
+                        Color.LightGray,
+
+                    fontSize =
+                        15.sp,
+
+                    textAlign =
+                        TextAlign.Center
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(25.dp)
+                )
+
+                Button(
+                    onClick = {
+                        // Task system can be connected later.
+                    },
+
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(55.dp),
+
+                    shape =
+                        RoundedCornerShape(16.dp)
+                ) {
+
+                    Text(
+                        text =
+                            "VIEW AVAILABLE TASKS",
+
+                        fontWeight =
+                            FontWeight.Bold
+                    )
+                }
+            }
+        }
+
+        Spacer(
+            modifier =
+                Modifier.height(20.dp)
+        )
+
+        Text(
+            text =
+                "More tasks coming soon",
+
+            color =
+                Color.Gray,
+
+            fontSize =
+                13.sp
+        )
+    }
+}
