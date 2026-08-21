@@ -26,7 +26,7 @@ data class Transaction(
 )
 
 class ScoreRepository(
-    val context: Context
+    private val context: Context
 ) {
 
     private val HIGH_SCORE_KEY =
@@ -53,10 +53,13 @@ class ScoreRepository(
     private val TRANSACTIONS_KEY =
         stringPreferencesKey("transactions")
 
+    private val HIGHEST_LEVEL_KEY =
+        intPreferencesKey("highest_level")
 
-    // =========================================================
+
+    // ==============================
     // HIGH SCORE
-    // =========================================================
+    // ==============================
 
     val highScoreFlow: Flow<Int> =
         context.dataStore.data.map { preferences ->
@@ -64,59 +67,9 @@ class ScoreRepository(
         }
 
 
-    // =========================================================
-    // SOUND
-    // =========================================================
-
-    val soundEnabledFlow: Flow<Boolean> =
-        context.dataStore.data.map { preferences ->
-            preferences[SOUND_KEY] ?: true
-        }
-
-
-    // =========================================================
-    // MUSIC
-    // =========================================================
-
-    val musicEnabledFlow: Flow<Boolean> =
-        context.dataStore.data.map { preferences ->
-            preferences[MUSIC_KEY] ?: true
-        }
-
-
-    // =========================================================
-    // VIBRATION
-    // =========================================================
-
-    val vibrationEnabledFlow: Flow<Boolean> =
-        context.dataStore.data.map { preferences ->
-            preferences[VIBRATION_KEY] ?: true
-        }
-
-
-    // =========================================================
-    // RATING
-    // =========================================================
-
-    val hasRatedFlow: Flow<Boolean> =
-        context.dataStore.data.map { preferences ->
-            preferences[HAS_RATED_KEY] ?: false
-        }
-
-
-    // =========================================================
-    // GAMES PLAYED
-    // =========================================================
-
-    val gamesPlayedFlow: Flow<Int> =
-        context.dataStore.data.map { preferences ->
-            preferences[GAMES_PLAYED_KEY] ?: 0
-        }
-
-
-    // =========================================================
+    // ==============================
     // WALLET
-    // =========================================================
+    // ==============================
 
     val walletBalanceFlow: Flow<Int> =
         context.dataStore.data.map { preferences ->
@@ -124,45 +77,101 @@ class ScoreRepository(
         }
 
 
-    // =========================================================
+    // ==============================
+    // HIGHEST UNLOCKED LEVEL
+    // ==============================
+
+    val highestLevelFlow: Flow<Int> =
+        context.dataStore.data.map { preferences ->
+            preferences[HIGHEST_LEVEL_KEY] ?: 1
+        }
+
+
+    // ==============================
+    // SOUND
+    // ==============================
+
+    val soundEnabledFlow: Flow<Boolean> =
+        context.dataStore.data.map { preferences ->
+            preferences[SOUND_KEY] ?: true
+        }
+
+
+    // ==============================
+    // MUSIC
+    // ==============================
+
+    val musicEnabledFlow: Flow<Boolean> =
+        context.dataStore.data.map { preferences ->
+            preferences[MUSIC_KEY] ?: true
+        }
+
+
+    // ==============================
+    // VIBRATION
+    // ==============================
+
+    val vibrationEnabledFlow: Flow<Boolean> =
+        context.dataStore.data.map { preferences ->
+            preferences[VIBRATION_KEY] ?: true
+        }
+
+
+    // ==============================
+    // RATING
+    // ==============================
+
+    val hasRatedFlow: Flow<Boolean> =
+        context.dataStore.data.map { preferences ->
+            preferences[HAS_RATED_KEY] ?: false
+        }
+
+
+    // ==============================
+    // GAMES PLAYED
+    // ==============================
+
+    val gamesPlayedFlow: Flow<Int> =
+        context.dataStore.data.map { preferences ->
+            preferences[GAMES_PLAYED_KEY] ?: 0
+        }
+
+
+    // ==============================
     // TRANSACTIONS
-    // =========================================================
+    // ==============================
 
     val transactionsFlow: Flow<List<Transaction>> =
         context.dataStore.data.map { preferences ->
 
-            val jsonString =
+            val json =
                 preferences[TRANSACTIONS_KEY] ?: "[]"
 
-            parseTransactions(jsonString)
+            parseTransactions(json)
         }
 
 
-    // =========================================================
+    // ==============================
     // UPDATE HIGH SCORE
-    // =========================================================
+    // ==============================
 
-    suspend fun updateHighScore(
-        score: Int
-    ) {
+    suspend fun updateHighScore(score: Int) {
 
         context.dataStore.edit { preferences ->
 
-            val currentHighScore =
+            val old =
                 preferences[HIGH_SCORE_KEY] ?: 0
 
-            if (score > currentHighScore) {
-
-                preferences[HIGH_SCORE_KEY] =
-                    score
+            if (score > old) {
+                preferences[HIGH_SCORE_KEY] = score
             }
         }
     }
 
 
-    // =========================================================
-    // GAMES PLAYED
-    // =========================================================
+    // ==============================
+    // GAME PLAYED
+    // ==============================
 
     suspend fun incrementGamesPlayed() {
 
@@ -177,13 +186,11 @@ class ScoreRepository(
     }
 
 
-    // =========================================================
+    // ==============================
     // ADD EARNING
-    // =========================================================
+    // ==============================
 
-    suspend fun addEarning(
-        amount: Int
-    ) {
+    suspend fun addEarning(amount: Int) {
 
         if (amount <= 0) return
 
@@ -192,121 +199,123 @@ class ScoreRepository(
             val currentBalance =
                 preferences[WALLET_BALANCE_KEY] ?: 0
 
-            val newBalance =
+            preferences[WALLET_BALANCE_KEY] =
                 currentBalance + amount
 
-            preferences[WALLET_BALANCE_KEY] =
-                newBalance
-
-
-            val existingJson =
+            val oldJson =
                 preferences[TRANSACTIONS_KEY] ?: "[]"
 
             val transactions =
-                parseTransactions(
-                    existingJson
-                ).toMutableList()
+                parseTransactions(oldJson).toMutableList()
 
-
-            val currentTime =
+            val now =
                 System.currentTimeMillis()
-
-
-            val transaction =
-                Transaction(
-                    id = currentTime,
-                    type = "EARNING",
-                    amount = amount,
-                    description = "Level completed",
-                    timestamp = currentTime
-                )
-
 
             transactions.add(
                 0,
-                transaction
+                Transaction(
+                    id = now,
+                    type = "EARNING",
+                    amount = amount,
+                    description = "Level completed",
+                    timestamp = now
+                )
             )
-
-
-            val limitedTransactions =
-                transactions.take(100)
-
 
             preferences[TRANSACTIONS_KEY] =
                 transactionsToJson(
-                    limitedTransactions
+                    transactions.take(100)
                 )
         }
     }
 
 
-    // =========================================================
+    // ==============================
+    // UNLOCK LEVEL
+    // ==============================
+
+    suspend fun unlockLevel(level: Int) {
+
+        if (level < 1) return
+
+        context.dataStore.edit { preferences ->
+
+            val current =
+                preferences[HIGHEST_LEVEL_KEY] ?: 1
+
+            if (level > current) {
+                preferences[HIGHEST_LEVEL_KEY] = level
+            }
+        }
+    }
+
+
+    // ==============================
+    // GET HIGHEST LEVEL
+    // ==============================
+
+    suspend fun setHighestLevel(level: Int) {
+
+        if (level < 1) return
+
+        context.dataStore.edit { preferences ->
+
+            preferences[HIGHEST_LEVEL_KEY] = level
+        }
+    }
+
+
+    // ==============================
     // RATING
-    // =========================================================
+    // ==============================
 
-    suspend fun setHasRated(
-        rated: Boolean
-    ) {
+    suspend fun setHasRated(rated: Boolean) {
 
         context.dataStore.edit { preferences ->
-
-            preferences[HAS_RATED_KEY] =
-                rated
+            preferences[HAS_RATED_KEY] = rated
         }
     }
 
 
-    // =========================================================
+    // ==============================
     // SOUND
-    // =========================================================
+    // ==============================
 
-    suspend fun toggleSound(
-        enabled: Boolean
-    ) {
+    suspend fun toggleSound(enabled: Boolean) {
 
         context.dataStore.edit { preferences ->
-
-            preferences[SOUND_KEY] =
-                enabled
+            preferences[SOUND_KEY] = enabled
         }
     }
 
 
-    // =========================================================
+    // ==============================
     // MUSIC
-    // =========================================================
+    // ==============================
 
-    suspend fun toggleMusic(
-        enabled: Boolean
-    ) {
+    suspend fun toggleMusic(enabled: Boolean) {
 
         context.dataStore.edit { preferences ->
-
-            preferences[MUSIC_KEY] =
-                enabled
+            preferences[MUSIC_KEY] = enabled
         }
     }
 
 
-    // =========================================================
+    // ==============================
     // VIBRATION
-    // =========================================================
+    // ==============================
 
-    suspend fun toggleVibration(
-        enabled: Boolean
-    ) {
+    suspend fun toggleVibration(enabled: Boolean) {
 
         context.dataStore.edit { preferences ->
-
-            preferences[VIBRATION_KEY] =
-                enabled
+            preferences[VIBRATION_KEY] = enabled
         }
     }
 
 
-    // =========================================================
+    // ==============================
     // PARSE TRANSACTIONS
-    // =========================================================
+    // ==============================
 
     private fun parseTransactions(
         jsonString: String
@@ -317,24 +326,18 @@ class ScoreRepository(
 
         try {
 
-            val jsonArray =
+            val array =
                 JSONArray(jsonString)
 
-            for (
-                i in 0 until jsonArray.length()
-            ) {
+            for (i in 0 until array.length()) {
 
                 val obj =
-                    jsonArray.getJSONObject(i)
+                    array.getJSONObject(i)
 
                 result.add(
-
                     Transaction(
-
                         id =
-                            obj.optLong(
-                                "id"
-                            ),
+                            obj.optLong("id"),
 
                         type =
                             obj.optString(
@@ -355,33 +358,28 @@ class ScoreRepository(
                             ),
 
                         timestamp =
-                            obj.optLong(
-                                "timestamp"
-                            )
+                            obj.optLong("timestamp")
                     )
                 )
             }
 
-        } catch (
-            e: Exception
-        ) {
-
-            e.printStackTrace()
+        } catch (_: Exception) {
+            // Invalid JSON hone par empty list
         }
 
         return result
     }
 
 
-    // =========================================================
+    // ==============================
     // TRANSACTIONS TO JSON
-    // =========================================================
+    // ==============================
 
     private fun transactionsToJson(
         transactions: List<Transaction>
     ): String {
 
-        val jsonArray =
+        val array =
             JSONArray()
 
         transactions.forEach { transaction ->
@@ -414,11 +412,9 @@ class ScoreRepository(
                 transaction.timestamp
             )
 
-            jsonArray.put(
-                obj
-            )
+            array.put(obj)
         }
 
-        return jsonArray.toString()
+        return array.toString()
     }
 }
