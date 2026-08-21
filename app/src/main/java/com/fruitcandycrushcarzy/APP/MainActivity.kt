@@ -28,7 +28,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -121,9 +120,9 @@ class MainActivity : ComponentActivity() {
                 }
 
                 /*
-                 * ============================================
+                 * =================================================
                  * MUSIC
-                 * ============================================
+                 * =================================================
                  */
 
                 val mediaPlayer = remember {
@@ -176,7 +175,6 @@ class MainActivity : ComponentActivity() {
                     )
 
                     onDispose {
-
                         lifecycleOwner.lifecycle.removeObserver(
                             observer
                         )
@@ -222,9 +220,9 @@ class MainActivity : ComponentActivity() {
                 }
 
                 /*
-                 * ============================================
+                 * =================================================
                  * APP OPEN AD
-                 * ============================================
+                 * =================================================
                  */
 
                 LaunchedEffect(Unit) {
@@ -237,9 +235,9 @@ class MainActivity : ComponentActivity() {
                 }
 
                 /*
-                 * ============================================
+                 * =================================================
                  * GAME EVENTS
-                 * ============================================
+                 * =================================================
                  */
 
                 LaunchedEffect(Unit) {
@@ -309,10 +307,12 @@ class MainActivity : ComponentActivity() {
                                 }
 
                                 /*
-                                 * Har 2 completed levels ke baad
-                                 * interstitial lagane ke liye
-                                 * baad mein counter connect karenge.
+                                 * LEVEL COMPLETE AD
                                  */
+
+                                adManager.showInterstitial(
+                                    this@MainActivity
+                                ) {}
                             }
 
                             GameEvent.REQUEST_REWARDED_AD -> {
@@ -321,9 +321,12 @@ class MainActivity : ComponentActivity() {
                                     this@MainActivity
                                 ) {
 
-                                    viewModel.grantRewardMoves(
-                                        10
-                                    )
+                                    /*
+                                     * Rewarded Ad =
+                                     * +5 moves
+                                     */
+
+                                    viewModel.grantRewardMoves(5)
                                 }
                             }
 
@@ -360,9 +363,9 @@ class MainActivity : ComponentActivity() {
                 }
 
                 /*
-                 * ============================================
+                 * =================================================
                  * PAGE NAVIGATION
-                 * ============================================
+                 * =================================================
                  */
 
                 var currentPage by remember {
@@ -370,21 +373,18 @@ class MainActivity : ComponentActivity() {
                 }
 
                 /*
-                 * Highest unlocked level.
-                 *
-                 * Abhi Level 1 unlocked.
-                 * Next step mein GameViewModel se
-                 * automatically unlock karenge.
+                 * =================================================
+                 * LEVEL PROGRESS
+                 * =================================================
                  */
 
-                val preferences =
-                    remember {
+                val preferences = remember {
 
-                        context.getSharedPreferences(
-                            "game_progress",
-                            MODE_PRIVATE
-                        )
-                    }
+                    context.getSharedPreferences(
+                        "game_progress",
+                        MODE_PRIVATE
+                    )
+                }
 
                 var highestLevel by remember {
 
@@ -396,12 +396,16 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
+                /*
+                 * =================================================
+                 * SCREEN
+                 * =================================================
+                 */
+
                 when (currentPage) {
 
                     /*
-                     * ========================================
                      * MAIN MENU
-                     * ========================================
                      */
 
                     AppPage.MENU -> {
@@ -424,22 +428,20 @@ class MainActivity : ComponentActivity() {
 
                             onWithdrawal = {
 
-                                // Withdrawal screen
-                                // next step mein connect karenge.
+                                currentPage =
+                                    AppPage.MENU
                             },
 
                             onTask = {
 
-                                // Task screen
-                                // next step mein connect karenge.
+                                currentPage =
+                                    AppPage.MENU
                             }
                         )
                     }
 
                     /*
-                     * ========================================
-                     * LEVEL MAP
-                     * ========================================
+                     * LEVELS
                      */
 
                     AppPage.LEVELS -> {
@@ -461,23 +463,21 @@ class MainActivity : ComponentActivity() {
                                     level <= highestLevel
                                 ) {
 
+                                    /*
+                                     * Selected level
+                                     * will be connected
+                                     * with GameViewModel.
+                                     */
+
                                     currentPage =
                                         AppPage.GAME
-
-                                    /*
-                                     * GameViewModel mein
-                                     * selected level connect
-                                     * next step mein karenge.
-                                     */
                                 }
                             }
                         )
                     }
 
                     /*
-                     * ========================================
                      * GAME
-                     * ========================================
                      */
 
                     AppPage.GAME -> {
@@ -488,14 +488,12 @@ class MainActivity : ComponentActivity() {
                         ) {
 
                             GameScreen(
-                                viewModel = viewModel
+                                viewModel =
+                                    viewModel
                             )
 
-                            /*
-                             * Back button
-                             */
-
                             Button(
+
                                 onClick = {
 
                                     currentPage =
@@ -508,6 +506,7 @@ class MainActivity : ComponentActivity() {
                                             Alignment.TopStart
                                         )
                                         .padding(8.dp)
+
                             ) {
 
                                 Text("← Levels")
@@ -521,9 +520,9 @@ class MainActivity : ComponentActivity() {
 }
 
 /*
- * ============================================================
+ * =============================================================
  * MAIN MENU
- * ============================================================
+ * =============================================================
  */
 
 @Composable
@@ -574,12 +573,14 @@ private fun MainMenuScreen(
                 text = "FRUIT CRUSH",
                 color = Color.White,
                 fontSize = 32.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight =
+                    FontWeight.Bold
             )
 
             Text(
                 text = "🍬 Match • Crush • Win 🍬",
-                color = Color(0xFFFFD54F),
+                color =
+                    Color(0xFFFFD54F),
                 fontSize = 15.sp
             )
 
@@ -614,13 +615,15 @@ private fun MainMenuScreen(
 
                     Text(
                         text = "💰 Wallet",
-                        color = Color.LightGray,
+                        color =
+                            Color.LightGray,
                         fontSize = 14.sp
                     )
 
                     Text(
                         text = "₹$walletBalance",
-                        color = Color(0xFFFFD54F),
+                        color =
+                            Color(0xFFFFD54F),
                         fontSize = 28.sp,
                         fontWeight =
                             FontWeight.Bold
@@ -660,6 +663,7 @@ private fun MainMenuScreen(
             )
 
             Row(
+
                 modifier =
                     Modifier.fillMaxWidth(),
 
@@ -710,13 +714,23 @@ private fun MainMenuScreen(
             )
 
             Text(
-                text = "Complete levels and earn rewards",
-                color = Color.Gray,
+                text =
+                    "Complete levels and earn rewards",
+
+                color =
+                    Color.Gray,
+
                 fontSize = 12.sp
             )
         }
     }
 }
+
+/*
+ * =============================================================
+ * MENU BUTTON
+ * =============================================================
+ */
 
 @Composable
 private fun MenuButton(
@@ -737,6 +751,7 @@ private fun MenuButton(
 
         shape =
             RoundedCornerShape(14.dp)
+
     ) {
 
         Text(
@@ -747,9 +762,9 @@ private fun MenuButton(
 }
 
 /*
- * ============================================================
+ * =============================================================
  * LEVEL MAP
- * ============================================================
+ * =============================================================
  */
 
 @Composable
@@ -782,6 +797,7 @@ private fun LevelMapScreen(
 
             verticalAlignment =
                 Alignment.CenterVertically
+
         ) {
 
             Button(
@@ -797,8 +813,9 @@ private fun LevelMapScreen(
             )
 
             Text(
-                text = "🍬 LEVELS",
-                color = Color.White,
+                text = "🍬 LEVELS 1-1000",
+                color =
+                    Color.White,
                 fontSize = 25.sp,
                 fontWeight =
                     FontWeight.Bold
@@ -808,8 +825,7 @@ private fun LevelMapScreen(
         HorizontalDivider()
 
         Text(
-            text =
-                "Choose a level",
+            text = "Choose a level",
 
             modifier =
                 Modifier
@@ -840,10 +856,17 @@ private fun LevelMapScreen(
 
             horizontalArrangement =
                 Arrangement.spacedBy(12.dp)
+
         ) {
 
+            /*
+             * ================================================
+             * 1000 LEVELS
+             * ================================================
+             */
+
             items(
-                (1..50).toList()
+                (1..1000).toList()
             ) { level ->
 
                 val unlocked =
@@ -851,14 +874,19 @@ private fun LevelMapScreen(
 
                 LevelButton(
 
-                    level = level,
+                    level =
+                        level,
 
-                    unlocked = unlocked,
+                    unlocked =
+                        unlocked,
 
                     onClick = {
 
                         if (unlocked) {
-                            onLevelSelected(level)
+
+                            onLevelSelected(
+                                level
+                            )
                         }
                     }
                 )
@@ -866,6 +894,12 @@ private fun LevelMapScreen(
         }
     }
 }
+
+/*
+ * =============================================================
+ * LEVEL BUTTON
+ * =============================================================
+ */
 
 @Composable
 private fun LevelButton(
@@ -884,6 +918,7 @@ private fun LevelButton(
             Modifier
                 .size(70.dp)
                 .background(
+
                     if (unlocked)
                         Color(0xFFFFB300)
                     else
@@ -892,8 +927,12 @@ private fun LevelButton(
                     CircleShape
                 )
                 .clickable(
-                    enabled = unlocked,
-                    onClick = onClick
+
+                    enabled =
+                        unlocked,
+
+                    onClick =
+                        onClick
                 ),
 
         contentAlignment =
@@ -907,6 +946,7 @@ private fun LevelButton(
         ) {
 
             Text(
+
                 text =
                     if (unlocked)
                         "🍬"
@@ -917,6 +957,7 @@ private fun LevelButton(
             )
 
             Text(
+
                 text =
                     level.toString(),
 
