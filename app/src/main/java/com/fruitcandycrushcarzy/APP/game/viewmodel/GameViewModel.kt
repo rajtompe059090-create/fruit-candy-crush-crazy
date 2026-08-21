@@ -31,7 +31,10 @@ enum class GameEvent {
 }
 
 enum class DragDirection {
-    UP, DOWN, LEFT, RIGHT
+    UP,
+    DOWN,
+    LEFT,
+    RIGHT
 }
 
 data class GameState(
@@ -44,7 +47,6 @@ data class GameState(
     val walletBalance: Int = 0,
     val highScore: Int = 0,
 
-    // Faster gameplay
     val movesLeft: Int = 20,
 
     val selectedPosition: Position? = null,
@@ -52,10 +54,8 @@ data class GameState(
 
     val level: Int = 1,
 
-    // Shorter level
     val timeLeftSeconds: Int = 60,
 
-    // Easier first level
     val targetScore: Int = 300,
 
     val lastComboCount: Int = 0,
@@ -103,7 +103,9 @@ class GameViewModel(
         viewModelScope.launch {
             scoreRepository.highScoreFlow.collectLatest { high ->
                 _uiState.update {
-                    it.copy(highScore = high)
+                    it.copy(
+                        highScore = high
+                    )
                 }
             }
         }
@@ -111,7 +113,9 @@ class GameViewModel(
         viewModelScope.launch {
             scoreRepository.walletBalanceFlow.collectLatest { balance ->
                 _uiState.update {
-                    it.copy(walletBalance = balance)
+                    it.copy(
+                        walletBalance = balance
+                    )
                 }
             }
         }
@@ -119,7 +123,9 @@ class GameViewModel(
         viewModelScope.launch {
             scoreRepository.soundEnabledFlow.collectLatest { enabled ->
                 _uiState.update {
-                    it.copy(isSoundEnabled = enabled)
+                    it.copy(
+                        isSoundEnabled = enabled
+                    )
                 }
             }
         }
@@ -127,7 +133,9 @@ class GameViewModel(
         viewModelScope.launch {
             scoreRepository.musicEnabledFlow.collectLatest { enabled ->
                 _uiState.update {
-                    it.copy(isMusicEnabled = enabled)
+                    it.copy(
+                        isMusicEnabled = enabled
+                    )
                 }
             }
         }
@@ -135,7 +143,9 @@ class GameViewModel(
         viewModelScope.launch {
             scoreRepository.vibrationEnabledFlow.collectLatest { enabled ->
                 _uiState.update {
-                    it.copy(isVibrationEnabled = enabled)
+                    it.copy(
+                        isVibrationEnabled = enabled
+                    )
                 }
             }
         }
@@ -173,7 +183,6 @@ class GameViewModel(
                 )
             }
 
-            // Short start screen
             delay(1000)
 
             _uiState.update {
@@ -234,8 +243,9 @@ class GameViewModel(
                     _uiState.update {
                         it.copy(
                             timeLeftSeconds =
-                                (it.timeLeftSeconds - 1)
-                                    .coerceAtLeast(0)
+                                (
+                                    it.timeLeftSeconds - 1
+                                ).coerceAtLeast(0)
                         )
                     }
 
@@ -247,7 +257,9 @@ class GameViewModel(
         }
     }
 
-    fun onCellClick(position: Position) {
+    fun onCellClick(
+        position: Position
+    ) {
 
         if (
             _uiState.value.isProcessing ||
@@ -331,7 +343,6 @@ class GameViewModel(
                 )
             }
 
-            // Faster swap
             delay(120)
 
             val matches =
@@ -366,8 +377,9 @@ class GameViewModel(
                 _uiState.update {
                     it.copy(
                         movesLeft =
-                            (it.movesLeft - 1)
-                                .coerceAtLeast(0)
+                            (
+                                it.movesLeft - 1
+                            ).coerceAtLeast(0)
                     )
                 }
 
@@ -415,6 +427,7 @@ class GameViewModel(
                         _uiState.value.grid
                     )
                 ) {
+
                     shuffleBoard(
                         isAuto = true
                     )
@@ -422,6 +435,14 @@ class GameViewModel(
             }
         }
     }
+
+    /*
+     * MATCH PROCESSING
+     *
+     * 3 fruits  -> normal clear
+     * 4 fruits  -> special fruit
+     * 5+ fruits -> bomb
+     */
 
     private suspend fun processMatches(
         grid: Array<Array<Fruit?>>,
@@ -445,21 +466,113 @@ class GameViewModel(
                 val matchPositions =
                     groups.flatten().toSet()
 
+                /*
+                 * Special fruits create karne hain.
+                 */
+                val specialFruitsToCreate =
+                    mutableListOf<
+                        Triple<
+                            Position,
+                            FruitType,
+                            SpecialType
+                        >
+                    >()
+
+                groups.forEach { group ->
+
+                    if (group.size >= 4) {
+
+                        val firstFruit =
+                            currentGrid[
+                                group[0].row
+                            ][
+                                group[0].col
+                            ]
+                                ?: return@forEach
+
+                        val fruitType =
+                            firstFruit.type
+
+                        val specialType =
+                            when {
+
+                                /*
+                                 * 5 ya usse zyada
+                                 * = BOMB
+                                 */
+                                group.size >= 5 ->
+                                    SpecialType.BOMB
+
+                                /*
+                                 * 4 horizontal
+                                 * = COLUMN BLAST
+                                 */
+                                group[0].row ==
+                                    group[1].row ->
+                                    SpecialType.COL_BLAST
+
+                                /*
+                                 * 4 vertical
+                                 * = ROW BLAST
+                                 */
+                                else ->
+                                    SpecialType.ROW_BLAST
+                            }
+
+                        /*
+                         * Special fruit ki position.
+                         *
+                         * Agar swap kiya hua fruit
+                         * match ka part hai to wahi
+                         * position use hogi.
+                         */
+                        val specialPosition =
+                            if (
+                                triggeredBy != null &&
+                                triggeredBy in group
+                            ) {
+
+                                triggeredBy
+
+                            } else {
+
+                                group[
+                                    group.size / 2
+                                ]
+                            }
+
+                        specialFruitsToCreate.add(
+                            Triple(
+                                specialPosition,
+                                fruitType,
+                                specialType
+                            )
+                        )
+                    }
+                }
+
+                /*
+                 * Special fruit wali position
+                 * ko clear nahi karna.
+                 */
+                val positionsToClear =
+                    matchPositions.filter { position ->
+
+                        specialFruitsToCreate.none {
+                            it.first == position
+                        }
+
+                    }.toSet()
+
+                /*
+                 * Existing special fruits
+                 * ke effects.
+                 */
                 val affectedPositions =
                     GameLogic.getAffectedPositions(
                         currentGrid,
                         matchPositions
                     )
-
-                if (
-                    affectedPositions.size >
-                    matchPositions.size
-                ) {
-
-                    _events.emit(
-                        GameEvent.SPECIAL_EXPLOSION
-                    )
-                }
 
                 val basePoints =
                     affectedPositions.size * 10
@@ -488,84 +601,47 @@ class GameViewModel(
                     GameEvent.MATCH
                 )
 
-                val specialFruitsToCreate =
-                    mutableListOf<
-                        Triple<
-                            Position,
-                            FruitType,
-                            SpecialType
-                        >
-                    >()
+                if (
+                    affectedPositions.size >
+                    matchPositions.size
+                ) {
 
-                groups.forEach { group ->
-
-                    if (group.size >= 4) {
-
-                        val type =
-                            currentGrid[
-                                group[0].row
-                            ][
-                                group[0].col
-                            ]?.type
-                                ?: return@forEach
-
-                        val specialType =
-                            when (group.size) {
-
-                                4 ->
-                                    if (
-                                        group[0].row ==
-                                        group[1].row
-                                    ) {
-                                        SpecialType.COL_BLAST
-                                    } else {
-                                        SpecialType.ROW_BLAST
-                                    }
-
-                                else ->
-                                    SpecialType.BOMB
-                            }
-
-                        val pos =
-                            if (
-                                triggeredBy != null &&
-                                triggeredBy in group
-                            ) {
-                                triggeredBy
-                            } else {
-                                group[0]
-                            }
-
-                        specialFruitsToCreate.add(
-                            Triple(
-                                pos,
-                                type,
-                                specialType
-                            )
-                        )
-                    }
+                    _events.emit(
+                        GameEvent.SPECIAL_EXPLOSION
+                    )
                 }
 
-                affectedPositions.forEach { pos ->
+                /*
+                 * Matched fruits clear.
+                 */
+                positionsToClear.forEach { position ->
 
                     currentGrid[
-                        pos.row
+                        position.row
                     ][
-                        pos.col
+                        position.col
                     ] = null
                 }
 
+                /*
+                 * Special fruits create.
+                 */
                 specialFruitsToCreate.forEach {
-                    (pos, type, special) ->
+                    (
+                        position,
+                        fruitType,
+                        specialType
+                    ) ->
 
                     currentGrid[
-                        pos.row
+                        position.row
                     ][
-                        pos.col
-                    ] = Fruit(
-                        type,
-                        special
-                    )
+                        position.col
+                    ] =
+                        Fruit(
+                            type = fruitType,
+                            special = specialType
+                        )
                 }
 
                 val newScore =
@@ -579,8 +655,12 @@ class GameViewModel(
                             copyGrid(
                                 currentGrid
                             ),
-                        score = newScore,
-                        lastComboCount = combo
+
+                        score =
+                            newScore,
+
+                        lastComboCount =
+                            combo
                     )
                 }
 
@@ -594,38 +674,48 @@ class GameViewModel(
                     )
                 }
 
-                // Faster animation
-                delay(120)
+                /*
+                 * Fruit disappear animation.
+                 */
+                delay(300)
 
+                /*
+                 * Gravity.
+                 */
                 GameLogic.applyGravity(
                     currentGrid
                 )
 
                 _uiState.update {
+
                     it.copy(
                         grid =
                             copyGrid(
                                 currentGrid
                             )
-                    )
+                    }
                 }
 
-                delay(100)
+                delay(200)
 
+                /*
+                 * New fruits.
+                 */
                 GameLogic.refillGrid(
                     currentGrid
                 )
 
                 _uiState.update {
+
                     it.copy(
                         grid =
                             copyGrid(
                                 currentGrid
                             )
-                    )
+                    }
                 }
 
-                delay(100)
+                delay(200)
             }
 
         } while (
@@ -634,10 +724,14 @@ class GameViewModel(
             ).isNotEmpty()
         )
 
+        /*
+         * Level complete.
+         */
         if (
             _uiState.value.score >=
             _uiState.value.targetScore
         ) {
+
             levelUp()
         }
     }
@@ -649,6 +743,9 @@ class GameViewModel(
             val completedLevel =
                 _uiState.value.level
 
+            /*
+             * Level earning.
+             */
             val earning =
                 when {
 
@@ -677,12 +774,12 @@ class GameViewModel(
             )
 
             _uiState.update {
+
                 it.copy(
                     isLevelUp = true
                 )
             }
 
-            // Short level-up screen
             delay(1000)
 
             _uiState.update {
@@ -690,45 +787,61 @@ class GameViewModel(
                 val nextLevel =
                     completedLevel + 1
 
-                // Small target increase
                 val nextTarget =
                     when {
 
                         nextLevel <= 50 ->
-                            300 + (
-                                (nextLevel - 1) * 50
-                            )
+                            300 +
+                                    (
+                                        (nextLevel - 1) *
+                                                50
+                                    )
 
                         nextLevel <= 100 ->
-                            2800 + (
-                                (nextLevel - 50) * 75
-                            )
+                            2800 +
+                                    (
+                                        (nextLevel - 50) *
+                                                75
+                                    )
 
                         nextLevel <= 150 ->
-                            6550 + (
-                                (nextLevel - 100) * 100
-                            )
+                            6550 +
+                                    (
+                                        (nextLevel - 100) *
+                                                100
+                                    )
 
                         nextLevel <= 200 ->
-                            11550 + (
-                                (nextLevel - 150) * 125
-                            )
+                            11550 +
+                                    (
+                                        (nextLevel - 150) *
+                                                125
+                                    )
 
                         else ->
-                            17800 + (
-                                (nextLevel - 200) * 150
-                            )
+                            17800 +
+                                    (
+                                        (nextLevel - 200) *
+                                                150
+                                    )
                     }
 
                 it.copy(
-                    level = nextLevel,
-                    targetScore = nextTarget,
 
-                    // Keep game fast
-                    movesLeft = 20,
-                    timeLeftSeconds = 60,
+                    level =
+                        nextLevel,
 
-                    isLevelUp = false
+                    targetScore =
+                        nextTarget,
+
+                    movesLeft =
+                        20,
+
+                    timeLeftSeconds =
+                        60,
+
+                    isLevelUp =
+                        false
                 )
             }
 
@@ -747,9 +860,14 @@ class GameViewModel(
 
         val cost =
             if (isAuto) {
+
                 0
+
             } else {
-                if (_uiState.value.hasMoves) {
+
+                if (
+                    _uiState.value.hasMoves
+                ) {
                     2
                 } else {
                     0
@@ -767,6 +885,7 @@ class GameViewModel(
 
                 it.copy(
                     isProcessing = true,
+
                     movesLeft =
                         it.movesLeft - cost
                 )
@@ -786,6 +905,7 @@ class GameViewModel(
             delay(150)
 
             _uiState.update {
+
                 it.copy(
                     isProcessing = false
                 )
