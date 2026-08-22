@@ -45,16 +45,6 @@ private enum class AppPage {
     TASK
 }
 
-/*
- * Telegram withdrawal account
- */
-private const val TELEGRAM_USERNAME = "Earning_adda0590"
-
-/*
- * Minimum withdrawal amount
- */
-private const val MIN_WITHDRAWAL = 100
-
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,7 +55,6 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-
             FRUITCANDYCRUSHCARZYTheme {
 
                 val context = LocalContext.current
@@ -76,13 +65,10 @@ class MainActivity : ComponentActivity() {
 
                 val viewModel: GameViewModel = viewModel(
                     factory = object : ViewModelProvider.Factory {
-
                         override fun <T : ViewModel> create(
                             modelClass: Class<T>
                         ): T {
-
                             @Suppress("UNCHECKED_CAST")
-
                             return GameViewModel(repository) as T
                         }
                     }
@@ -106,14 +92,7 @@ class MainActivity : ComponentActivity() {
                     mutableStateOf(AppPage.MENU)
                 }
 
-                /*
-                 * ========================================================
-                 * LEVEL PROGRESS
-                 * ========================================================
-                 */
-
                 val preferences = remember {
-
                     context.getSharedPreferences(
                         "game_progress",
                         MODE_PRIVATE
@@ -121,7 +100,6 @@ class MainActivity : ComponentActivity() {
                 }
 
                 var highestLevel by remember {
-
                     mutableIntStateOf(
                         preferences.getInt(
                             "highest_level",
@@ -130,68 +108,44 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
-                /*
-                 * ========================================================
-                 * GAME EVENTS
-                 * ========================================================
-                 */
-
                 LaunchedEffect(Unit) {
-
                     viewModel.events.collect { event ->
 
                         when (event) {
 
                             GameEvent.MATCH -> {
-
-                                if (
-                                    viewModel.uiState.value.isSoundEnabled
-                                ) {
+                                if (viewModel.uiState.value.isSoundEnabled) {
                                     soundManager.playMatch()
                                 }
 
-                                if (
-                                    viewModel.uiState.value.isVibrationEnabled
-                                ) {
+                                if (viewModel.uiState.value.isVibrationEnabled) {
                                     vibrationManager.vibrate(40)
                                 }
                             }
 
                             GameEvent.SWAP -> {
-
-                                if (
-                                    viewModel.uiState.value.isSoundEnabled
-                                ) {
+                                if (viewModel.uiState.value.isSoundEnabled) {
                                     soundManager.playSwap()
                                 }
                             }
 
                             GameEvent.SPECIAL_EXPLOSION -> {
-
-                                if (
-                                    viewModel.uiState.value.isSoundEnabled
-                                ) {
+                                if (viewModel.uiState.value.isSoundEnabled) {
                                     soundManager.playExplosion()
                                 }
 
-                                if (
-                                    viewModel.uiState.value.isVibrationEnabled
-                                ) {
+                                if (viewModel.uiState.value.isVibrationEnabled) {
                                     vibrationManager.vibrate(100)
                                 }
                             }
 
                             GameEvent.LEVEL_UP -> {
 
-                                if (
-                                    viewModel.uiState.value.isSoundEnabled
-                                ) {
+                                if (viewModel.uiState.value.isSoundEnabled) {
                                     soundManager.playLevelUp()
                                 }
 
-                                if (
-                                    viewModel.uiState.value.isVibrationEnabled
-                                ) {
+                                if (viewModel.uiState.value.isVibrationEnabled) {
                                     vibrationManager.vibrate(200)
                                 }
 
@@ -200,7 +154,6 @@ class MainActivity : ComponentActivity() {
                                         .coerceAtMost(1000)
 
                                 if (nextLevel > highestLevel) {
-
                                     highestLevel = nextLevel
 
                                     preferences.edit()
@@ -213,31 +166,25 @@ class MainActivity : ComponentActivity() {
                             }
 
                             GameEvent.REQUEST_REWARDED_AD -> {
-
                                 adManager.showRewarded(
                                     this@MainActivity
                                 ) {
-
                                     viewModel.grantRewardMoves(10)
                                 }
                             }
 
                             GameEvent.RATE_APP -> {
 
-                                val marketIntent =
-                                    Intent(
-                                        Intent.ACTION_VIEW,
-                                        Uri.parse(
-                                            "market://details?id=$packageName"
-                                        )
+                                val marketIntent = Intent(
+                                    Intent.ACTION_VIEW,
+                                    Uri.parse(
+                                        "market://details?id=$packageName"
                                     )
+                                )
 
                                 try {
-
                                     startActivity(marketIntent)
-
                                 } catch (_: Exception) {
-
                                     startActivity(
                                         Intent(
                                             Intent.ACTION_VIEW,
@@ -250,70 +197,47 @@ class MainActivity : ComponentActivity() {
                             }
 
                             GameEvent.GAME_OVER -> Unit
+
+                            else -> Unit
                         }
                     }
                 }
 
-                /*
-                 * ========================================================
-                 * PAGE NAVIGATION
-                 * ========================================================
-                 */
-
                 when (currentPage) {
 
                     AppPage.MENU -> {
-
                         MainMenuScreen(
-
-                            walletBalance =
-                                uiState.walletBalance,
+                            walletBalance = uiState.walletBalance,
 
                             onPlay = {
-
-                                currentPage =
-                                    AppPage.LEVELS
+                                currentPage = AppPage.LEVELS
                             },
 
                             onSettings = {
-
                                 viewModel.toggleSettings()
                             },
 
                             onWithdrawal = {
-
-                                currentPage =
-                                    AppPage.WITHDRAW
+                                currentPage = AppPage.WITHDRAW
                             },
 
                             onTask = {
-
-                                currentPage =
-                                    AppPage.TASK
+                                currentPage = AppPage.TASK
                             }
                         )
                     }
 
                     AppPage.LEVELS -> {
-
                         LevelMapScreen(
-
-                            highestLevel =
-                                highestLevel,
+                            highestLevel = highestLevel,
 
                             onBack = {
-
-                                currentPage =
-                                    AppPage.MENU
+                                currentPage = AppPage.MENU
                             },
 
                             onLevelSelected = { level ->
-
                                 if (level <= highestLevel) {
-
-                                    currentPage =
-                                        AppPage.GAME
-
+                                    currentPage = AppPage.GAME
                                     viewModel.resetGame()
                                 }
                             }
@@ -321,10 +245,8 @@ class MainActivity : ComponentActivity() {
                     }
 
                     AppPage.GAME -> {
-
                         Box(
-                            modifier =
-                                Modifier.fillMaxSize()
+                            modifier = Modifier.fillMaxSize()
                         ) {
 
                             GameScreen(
@@ -332,48 +254,33 @@ class MainActivity : ComponentActivity() {
                             )
 
                             Button(
-
                                 onClick = {
-
-                                    currentPage =
-                                        AppPage.LEVELS
+                                    currentPage = AppPage.LEVELS
                                 },
 
-                                modifier =
-                                    Modifier
-                                        .align(Alignment.TopStart)
-                                        .padding(8.dp)
-
+                                modifier = Modifier
+                                    .align(Alignment.TopStart)
+                                    .padding(8.dp)
                             ) {
-
                                 Text("← Levels")
                             }
                         }
                     }
 
                     AppPage.WITHDRAW -> {
-
                         WithdrawalScreen(
-
-                            balance =
-                                uiState.walletBalance,
+                            balance = uiState.walletBalance,
 
                             onBack = {
-
-                                currentPage =
-                                    AppPage.MENU
+                                currentPage = AppPage.MENU
                             }
                         )
                     }
 
                     AppPage.TASK -> {
-
                         TaskScreen(
-
                             onBack = {
-
-                                currentPage =
-                                    AppPage.MENU
+                                currentPage = AppPage.MENU
                             }
                         )
                     }
@@ -382,12 +289,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
-/*
- * ============================================================
- * MAIN MENU
- * ============================================================
- */
 
 @Composable
 private fun MainMenuScreen(
@@ -399,20 +300,15 @@ private fun MainMenuScreen(
 ) {
 
     Column(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .background(Color(0xFF101820))
-                .padding(22.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF101820))
+            .padding(22.dp),
 
-        horizontalAlignment =
-            Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
-        Spacer(
-            modifier =
-                Modifier.height(40.dp)
-        )
+        Spacer(modifier = Modifier.height(40.dp))
 
         Text(
             text = "🍓",
@@ -432,31 +328,19 @@ private fun MainMenuScreen(
             fontSize = 15.sp
         )
 
-        Spacer(
-            modifier =
-                Modifier.height(25.dp)
-        )
+        Spacer(modifier = Modifier.height(25.dp))
 
         Card(
-            modifier =
-                Modifier.fillMaxWidth(),
-
-            shape =
-                RoundedCornerShape(20.dp),
-
-            colors =
-                CardDefaults.cardColors(
-                    containerColor =
-                        Color(0xFF263238)
-                )
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color(0xFF263238)
+            )
         ) {
 
             Column(
-                modifier =
-                    Modifier.padding(18.dp),
-
-                horizontalAlignment =
-                    Alignment.CenterHorizontally
+                modifier = Modifier.padding(18.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
 
                 Text(
@@ -473,21 +357,16 @@ private fun MainMenuScreen(
             }
         }
 
-        Spacer(
-            modifier =
-                Modifier.height(20.dp)
-        )
+        Spacer(modifier = Modifier.height(20.dp))
 
         Button(
             onClick = onPlay,
 
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .height(58.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(58.dp),
 
-            shape =
-                RoundedCornerShape(16.dp)
+            shape = RoundedCornerShape(16.dp)
         ) {
 
             Text(
@@ -497,78 +376,46 @@ private fun MainMenuScreen(
             )
         }
 
-        Spacer(
-            modifier =
-                Modifier.height(10.dp)
-        )
+        Spacer(modifier = Modifier.height(10.dp))
 
         Row(
-            modifier =
-                Modifier.fillMaxWidth(),
-
-            horizontalArrangement =
-                Arrangement.spacedBy(10.dp)
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
 
             Button(
                 onClick = onTask,
-
-                modifier =
-                    Modifier.weight(1f)
+                modifier = Modifier.weight(1f)
             ) {
-
                 Text("📋 TASK")
             }
 
             Button(
                 onClick = onWithdrawal,
-
-                modifier =
-                    Modifier.weight(1f)
+                modifier = Modifier.weight(1f)
             ) {
-
                 Text("💸 WITHDRAW")
             }
         }
 
-        Spacer(
-            modifier =
-                Modifier.height(10.dp)
-        )
+        Spacer(modifier = Modifier.height(10.dp))
 
         Button(
             onClick = onSettings,
-
-            modifier =
-                Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth()
         ) {
-
             Text("⚙️ SETTINGS")
         }
 
-        Spacer(
-            modifier =
-                Modifier.height(20.dp)
-        )
+        Spacer(modifier = Modifier.height(20.dp))
 
         Text(
-            text =
-                "Complete levels and earn rewards",
-
-            color =
-                Color.Gray,
-
-            fontSize =
-                12.sp
+            text = "Complete levels and earn rewards",
+            color = Color.Gray,
+            fontSize = 12.sp
         )
     }
 }
-
-/*
- * ============================================================
- * LEVEL MAP
- * ============================================================
- */
 
 @Composable
 private fun LevelMapScreen(
@@ -578,33 +425,26 @@ private fun LevelMapScreen(
 ) {
 
     Column(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .background(Color(0xFF101820))
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF101820))
     ) {
 
         Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
 
-            verticalAlignment =
-                Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically
         ) {
 
             Button(
                 onClick = onBack
             ) {
-
                 Text("←")
             }
 
-            Spacer(
-                modifier =
-                    Modifier.width(12.dp)
-            )
+            Spacer(modifier = Modifier.width(12.dp))
 
             Text(
                 text = "🍬 LEVELS",
@@ -615,50 +455,38 @@ private fun LevelMapScreen(
         }
 
         Text(
-            text =
-                "Unlocked: $highestLevel / 1000",
+            text = "Unlocked: $highestLevel / 1000",
 
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(10.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(10.dp),
 
-            color =
-                Color(0xFFFFD54F),
+            color = Color(0xFFFFD54F),
 
-            textAlign =
-                TextAlign.Center
+            textAlign = TextAlign.Center
         )
 
         LazyVerticalGrid(
-            columns =
-                GridCells.Fixed(4),
+            columns = GridCells.Fixed(4),
 
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(12.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp),
 
-            verticalArrangement =
-                Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
 
-            horizontalArrangement =
-                Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
 
-            items(
-                (1..1000).toList()
-            ) { level ->
+            items((1..1000).toList()) { level ->
 
-                val unlocked =
-                    level <= highestLevel
+                val unlocked = level <= highestLevel
 
                 LevelButton(
                     level = level,
                     unlocked = unlocked,
 
                     onClick = {
-
                         if (unlocked) {
                             onLevelSelected(level)
                         }
@@ -669,12 +497,6 @@ private fun LevelMapScreen(
     }
 }
 
-/*
- * ============================================================
- * LEVEL BUTTON
- * ============================================================
- */
-
 @Composable
 private fun LevelButton(
     level: Int,
@@ -683,64 +505,45 @@ private fun LevelButton(
 ) {
 
     Box(
-        modifier =
-            Modifier
-                .size(70.dp)
-                .background(
-                    if (unlocked)
-                        Color(0xFFFFB300)
-                    else
-                        Color(0xFF37474F),
+        modifier = Modifier
+            .size(70.dp)
+            .background(
+                if (unlocked)
+                    Color(0xFFFFB300)
+                else
+                    Color(0xFF37474F),
+                CircleShape
+            )
+            .clickable(
+                enabled = unlocked,
+                onClick = onClick
+            ),
 
-                    CircleShape
-                )
-                .clickable(
-                    enabled = unlocked,
-                    onClick = onClick
-                ),
-
-        contentAlignment =
-            Alignment.Center
+        contentAlignment = Alignment.Center
     ) {
 
         Column(
-            horizontalAlignment =
-                Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
             Text(
-                text =
-                    if (unlocked)
-                        "🍬"
-                    else
-                        "🔒",
-
-                fontSize =
-                    20.sp
+                text = if (unlocked) "🍬" else "🔒",
+                fontSize = 20.sp
             )
 
             Text(
-                text =
-                    level.toString(),
+                text = level.toString(),
 
-                color =
-                    if (unlocked)
-                        Color.Black
-                    else
-                        Color.LightGray,
+                color = if (unlocked)
+                    Color.Black
+                else
+                    Color.LightGray,
 
-                fontWeight =
-                    FontWeight.Bold
+                fontWeight = FontWeight.Bold
             )
         }
     }
 }
-
-/*
- * ============================================================
- * WITHDRAWAL SCREEN
- * ============================================================
- */
 
 @Composable
 private fun WithdrawalScreen(
@@ -750,29 +553,26 @@ private fun WithdrawalScreen(
 
     val context = LocalContext.current
 
-    var errorMessage by remember {
-        mutableStateOf("")
+    val minWithdrawal = 100
+
+    var showError by remember {
+        mutableStateOf(false)
     }
 
     Column(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .background(Color(0xFF101820))
-                .padding(20.dp)
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF101820))
+            .padding(20.dp)
     ) {
 
         Button(
             onClick = onBack
         ) {
-
             Text("← Back")
         }
 
-        Spacer(
-            modifier =
-                Modifier.height(30.dp)
-        )
+        Spacer(modifier = Modifier.height(30.dp))
 
         Text(
             text = "💸 WITHDRAW",
@@ -781,31 +581,19 @@ private fun WithdrawalScreen(
             fontWeight = FontWeight.Bold
         )
 
-        Spacer(
-            modifier =
-                Modifier.height(20.dp)
-        )
+        Spacer(modifier = Modifier.height(20.dp))
 
         Card(
-            modifier =
-                Modifier.fillMaxWidth(),
-
-            shape =
-                RoundedCornerShape(20.dp),
-
-            colors =
-                CardDefaults.cardColors(
-                    containerColor =
-                        Color(0xFF263238)
-                )
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color(0xFF263238)
+            )
         ) {
 
             Column(
-                modifier =
-                    Modifier.padding(20.dp),
-
-                horizontalAlignment =
-                    Alignment.CenterHorizontally
+                modifier = Modifier.padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
 
                 Text(
@@ -814,10 +602,7 @@ private fun WithdrawalScreen(
                     fontSize = 13.sp
                 )
 
-                Spacer(
-                    modifier =
-                        Modifier.height(5.dp)
-                )
+                Spacer(modifier = Modifier.height(5.dp))
 
                 Text(
                     text = "₹$balance",
@@ -828,196 +613,83 @@ private fun WithdrawalScreen(
             }
         }
 
-        Spacer(
-            modifier =
-                Modifier.height(20.dp)
-        )
+        Spacer(modifier = Modifier.height(20.dp))
 
         Text(
-            text =
-                "Minimum withdrawal: ₹$MIN_WITHDRAWAL",
-
-            color =
-                Color.White,
-
-            fontSize =
-                15.sp,
-
-            fontWeight =
-                FontWeight.Bold
+            text = "Minimum withdrawal: ₹100",
+            color = Color.White,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold
         )
 
-        Spacer(
-            modifier =
-                Modifier.height(15.dp)
-        )
+        Spacer(modifier = Modifier.height(15.dp))
 
-        if (balance < MIN_WITHDRAWAL) {
+        if (showError) {
 
             Text(
-                text =
-                    "❌ Minimum ₹100 balance required for withdrawal.",
-
-                color =
-                    Color.Red,
-
-                fontSize =
-                    14.sp,
-
-                fontWeight =
-                    FontWeight.Bold,
-
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 12.dp),
-
-                textAlign =
-                    TextAlign.Center
-            )
-        }
-
-        if (errorMessage.isNotEmpty()) {
-
-            Text(
-                text =
-                    errorMessage,
-
-                color =
-                    Color.Red,
-
-                fontSize =
-                    14.sp,
-
-                fontWeight =
-                    FontWeight.Bold,
-
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 12.dp),
-
-                textAlign =
-                    TextAlign.Center
+                text = "❌ Minimum withdrawal amount is ₹100",
+                color = Color.Red,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 15.dp)
             )
         }
 
         Button(
             onClick = {
 
-                if (balance < MIN_WITHDRAWAL) {
-
-                    errorMessage =
-                        "❌ Withdrawal failed: Minimum ₹100 required."
-
+                if (balance < minWithdrawal) {
+                    showError = true
                 } else {
 
-                    errorMessage = ""
+                    showError = false
 
-                    val telegramUrl =
-                        "https://t.me/$TELEGRAM_USERNAME"
+                    val telegramIntent = Intent(
+                        Intent.ACTION_VIEW,
+                        Uri.parse(
+                            "https://t.me/Earning_adda0590"
+                        )
+                    )
 
                     try {
-
-                        context.startActivity(
-                            Intent(
-                                Intent.ACTION_VIEW,
-                                Uri.parse(telegramUrl)
-                            )
-                        )
-
+                        context.startActivity(telegramIntent)
                     } catch (_: Exception) {
-
-                        context.startActivity(
-                            Intent(
-                                Intent.ACTION_VIEW,
-                                Uri.parse(
-                                    "https://telegram.me/$TELEGRAM_USERNAME"
-                                )
-                            )
-                        )
                     }
                 }
             },
 
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .height(58.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(58.dp),
 
-            shape =
-                RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(16.dp),
 
-            colors =
-                ButtonDefaults.buttonColors(
-                    containerColor =
-                        Color(0xFF2196F3)
-                )
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFF229ED9)
+            )
         ) {
 
             Text(
-                text =
-                    "💬 CONTACT ON TELEGRAM",
-
-                fontWeight =
-                    FontWeight.Bold,
-
-                fontSize =
-                    16.sp
+                text = "📩 CONTACT ON TELEGRAM",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold
             )
         }
 
-        Spacer(
-            modifier =
-                Modifier.height(15.dp)
-        )
+        Spacer(modifier = Modifier.height(18.dp))
 
         Text(
             text =
-                "Telegram: @$TELEGRAM_USERNAME",
+                "For withdrawal, contact us on Telegram.\nTelegram: @Earning_adda0590",
 
-            color =
-                Color.LightGray,
+            color = Color.LightGray,
+            fontSize = 14.sp,
+            textAlign = TextAlign.Center,
 
-            fontSize =
-                13.sp,
-
-            modifier =
-                Modifier.fillMaxWidth(),
-
-            textAlign =
-                TextAlign.Center
-        )
-
-        Spacer(
-            modifier =
-                Modifier.height(8.dp)
-        )
-
-        Text(
-            text =
-                "Withdrawal requests are manually verified.",
-
-            color =
-                Color.Gray,
-
-            fontSize =
-                12.sp,
-
-            textAlign =
-                TextAlign.Center,
-
-            modifier =
-                Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth()
         )
     }
 }
-
-/*
- * ============================================================
- * TASK SCREEN
- * ============================================================
- */
 
 @Composable
 private fun TaskScreen(
@@ -1025,141 +697,106 @@ private fun TaskScreen(
 ) {
 
     Column(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .background(Color(0xFF101820))
-                .padding(20.dp),
-
-        horizontalAlignment =
-            Alignment.CenterHorizontally
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF101820))
+            .padding(20.dp)
     ) {
 
-        Row(
-            modifier =
-                Modifier.fillMaxWidth(),
-
-            verticalAlignment =
-                Alignment.CenterVertically
+        Button(
+            onClick = onBack
         ) {
-
-            Button(
-                onClick = onBack
-            ) {
-
-                Text("← Back")
-            }
-
-            Spacer(
-                modifier =
-                    Modifier.width(12.dp)
-            )
-
-            Text(
-                text = "📋 TASK",
-                color = Color.White,
-                fontSize = 26.sp,
-                fontWeight = FontWeight.Bold
-            )
+            Text("← Back")
         }
 
-        Spacer(
-            modifier =
-                Modifier.height(40.dp)
+        Spacer(modifier = Modifier.height(30.dp))
+
+        Text(
+            text = "📋 TASKS",
+            color = Color.White,
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold
         )
 
+        Spacer(modifier = Modifier.height(20.dp))
+
         Card(
-            modifier =
-                Modifier.fillMaxWidth(),
-
-            shape =
-                RoundedCornerShape(24.dp),
-
-            colors =
-                CardDefaults.cardColors(
-                    containerColor =
-                        Color(0xFF263238)
-                )
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color(0xFF263238)
+            )
         ) {
 
             Column(
-                modifier =
-                    Modifier.padding(24.dp),
-
-                horizontalAlignment =
-                    Alignment.CenterHorizontally
+                modifier = Modifier.padding(22.dp)
             ) {
 
                 Text(
-                    text = "🎯 COMPLETE TASKS",
+                    text = "🎮 Play Game",
                     color = Color.White,
-                    fontSize = 24.sp,
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
 
-                Spacer(
-                    modifier =
-                        Modifier.height(15.dp)
-                )
+                Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
                     text =
-                        "Complete available tasks and earn rewards.",
+                        "Complete game levels and collect your rewards.",
 
-                    color =
-                        Color.LightGray,
-
-                    fontSize =
-                        15.sp,
-
-                    textAlign =
-                        TextAlign.Center
+                    color = Color.LightGray,
+                    fontSize = 14.sp
                 )
-
-                Spacer(
-                    modifier =
-                        Modifier.height(25.dp)
-                )
-
-                Button(
-                    onClick = {
-                        // Task system can be connected later.
-                    },
-
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .height(55.dp),
-
-                    shape =
-                        RoundedCornerShape(16.dp)
-                ) {
-
-                    Text(
-                        text =
-                            "VIEW AVAILABLE TASKS",
-
-                        fontWeight =
-                            FontWeight.Bold
-                    )
-                }
             }
         }
 
-        Spacer(
-            modifier =
-                Modifier.height(20.dp)
-        )
+        Spacer(modifier = Modifier.height(15.dp))
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color(0xFF263238)
+            )
+        ) {
+
+            Column(
+                modifier = Modifier.padding(22.dp)
+            ) {
+
+                Text(
+                    text = "💰 Rewards",
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text =
+                        "Your completed levels and available balance are shown in your wallet.",
+
+                    color = Color.LightGray,
+                    fontSize = 14.sp
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
 
         Text(
             text =
-                "More tasks coming soon",
+                "Withdrawal support: @Earning_adda0590",
 
-            color =
-                Color.Gray,
+            color = Color(0xFF229ED9),
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold,
 
-            fontSize =
-                13.sp
+            modifier = Modifier.fillMaxWidth(),
+
+            textAlign = TextAlign.Center
         )
     }
 }
